@@ -47,6 +47,10 @@ body {
   background: oklch(0.4 0.01 260 / 0.6);
 }
 
+:host([data-flick-host]) body {
+  background: transparent;
+}
+
 #flick-root {
   all: initial;
   font-family: var(--font-sans);

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="public/icon/128.png" alt="Flick icon" width="96" height="96">
+
 # Flick
 
 A command palette for Chrome. Press a shortcut, type a command, and go — custom URL aliases, text snippets, and built-in developer tools in one fast, keyboard-first overlay.
