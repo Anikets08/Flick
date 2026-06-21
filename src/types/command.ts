@@ -24,7 +24,8 @@ export type CommandAction =
   | { type: 'mute-tab' }
   | { type: 'move-to-new-window' }
   | { type: 'bookmark-page' }
-  | { type: 'paste-snippet'; text: string; label: string };
+  | { type: 'paste-snippet'; text: string; label: string }
+  | { type: 'color-picker' };
 
 export interface CommandItem {
   id: string;

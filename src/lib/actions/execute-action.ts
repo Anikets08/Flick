@@ -182,7 +182,7 @@ async function bookmarkPage(tabId: number): Promise<void> {
   await browser.bookmarks.create({ title: tab.title, url: tab.url });
 }
 
-async function showToast(tabId: number, message: string): Promise<void> {
+export async function showToast(tabId: number, message: string): Promise<void> {
   await browser.scripting.executeScript({
     target: { tabId },
     func: (msg: string) => {
@@ -365,6 +365,11 @@ export async function executeAction(
       if (tabId == null) return;
       await bookmarkPage(tabId);
       void showToast(tabId, 'Page bookmarked');
+      return;
+    }
+    case 'color-picker': {
+      if (tabId == null) return;
+      await browser.tabs.sendMessage(tabId, { type: 'ENTER_COLOR_PICKER' });
       return;
     }
     case 'custom':

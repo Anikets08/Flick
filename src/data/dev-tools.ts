@@ -105,4 +105,12 @@ export const DEV_TOOLS: CommandItem[] = [
     category: 'devtool',
     action: { type: 'copy', value: 'url' },
   },
+  {
+    id: 'dev-color-picker',
+    title: 'Color Picker',
+    subtitle: 'Pick a color from anywhere on the page',
+    keywords: ['color', 'pick', 'eyedropper', 'eyedrop', 'pipette', 'cp'],
+    category: 'devtool',
+    action: { type: 'color-picker' },
+  },
 ];

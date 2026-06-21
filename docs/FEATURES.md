@@ -34,6 +34,7 @@ Built-in commands that run directly on the active tab. Search by name or keyword
 | Search Keywords | Action | What it does |
 |----------------|--------|-------------|
 | `ss`, `screenshot`, `capture`, `snapshot` | **Screenshot** | Captures the visible viewport and saves to `~/Downloads/screenshot-<timestamp>.png` |
+| `color`, `pick`, `eyedropper`, `pipette`, `cp` | **Color Picker** | Pick a color from anywhere on the page — hover for live preview, click to copy hex to clipboard |
 | `dark`, `night`, `theme`, `invert`, `dm` | **Toggle Dark Mode** | Inverts page colors (CSS filter) — run again to revert |
 | `grid`, `layout`, `columns`, `design`, `g` | **Toggle Column Grid** | Overlays a 12-column responsive grid on the page — run again to hide |
 | `ruler`, `measure`, `pixel`, `px`, `r` | **Toggle Pixel Rulers** | Shows pixel rulers along the top and left edges — run again to hide |

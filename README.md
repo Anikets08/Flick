@@ -26,6 +26,7 @@ Flick brings the speed of macOS Spotlight to your browser. Instead of reaching f
 | `mdn` | Opens MDN Web Docs |
 | `email` | Copies your email address to the clipboard |
 | `ss` | Takes a screenshot of the current tab |
+| `cp` | Picks a color from anywhere on the page |
 | `dark` | Toggles dark mode on the page |
 | `grid` | Overlays a 12-column design grid |
 | `cache` | Clears cache and reloads the page |
@@ -61,7 +62,7 @@ Thirteen built-in commands that run directly on the active tab. Search by name o
 
 | Category | Commands |
 |---|---|
-| **Capture & Visual** | Screenshot (viewport / select element), Toggle dark mode, Toggle column grid, Toggle pixel rulers |
+| **Capture & Visual** | Screenshot (viewport / select element), Color picker, Toggle dark mode, Toggle column grid, Toggle pixel rulers |
 | **Tab Management** | Duplicate tab, Toggle pin, Toggle mute, Move to new window |
 | **Page Actions** | Bookmark page, Copy URL, Copy as Markdown link |
 | **Cache & Storage** | Clear cache + reload |
@@ -263,7 +264,7 @@ For the full guide, see [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md).
 - [x] Shadow DOM–isolated palette with `cmdk`
 - [x] URL aliases with Fuse.js fuzzy search
 - [x] Text snippets with clipboard paste
-- [x] 13 built-in developer tools (screenshot, dark mode, grid, rulers, tab management, copy, bookmark, clear cache)
+- [x] 14 built-in developer tools (screenshot, color picker, dark mode, grid, rulers, tab management, copy, bookmark, clear cache)
 - [x] Element-selection screenshot mode
 - [x] Settings page with sidebar nav, modal forms, sticky positioning
 - [x] Quick-add suggestion chips in the palette

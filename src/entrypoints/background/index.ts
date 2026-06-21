@@ -115,6 +115,13 @@ export default defineBackground(() => {
       return true;
     }
 
+    if (message?.type === 'SHOW_TOAST') {
+      if (!sender.tab?.id) return false;
+      const { showToast } = await import('@/lib/actions/execute-action');
+      void showToast(sender.tab.id, message.message as string);
+      return false;
+    }
+
     if (message?.type === 'OPEN_OPTIONS') {
       void browser.runtime.openOptionsPage();
       return false;

@@ -48,6 +48,7 @@ Phased plan for Flick. Each phase is shippable on its own.
 - [x] **Copy URL / Markdown link** — clipboard utilities
 - [x] **Clear cache** — remove cached files + reload
 - [x] Toast notifications for all actions
+- [x] Color picker — pick any pixel from the page, copies hex to clipboard
 - [x] Page interaction guard (keyboard event blocking)
 - [x] Restricted-page detection (`chrome://`, Web Store, etc.)
 
