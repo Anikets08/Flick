@@ -28,14 +28,8 @@ import type { CommandItem, TextSnippet, UrlAlias } from '@/types';
 
 interface FlickShellProps {
   onClose: () => void;
-}
-
-function runCommand(item: CommandItem, onClose: () => void): void {
-  browser.runtime.sendMessage({
-    type: 'EXECUTE_ACTION',
-    action: item.action,
-  });
-  onClose();
+  isPopup?: boolean;
+  activeTabId?: number;
 }
 
 function openSettings(): void {
@@ -94,18 +88,38 @@ const actionIcon = (item: CommandItem) => {
 };
 
 /** Command palette — alias search and navigation (Phase 1) */
-export function FlickShell({ onClose }: FlickShellProps) {
+export function FlickShell({ onClose, isPopup, activeTabId }: FlickShellProps) {
   const { query, setQuery, results, aliasResults, devToolResults, snippetResults, aliases, snippets, loading } = useFlickSearch();
 
-  useBlockPageInteraction(true);
+  useBlockPageInteraction(!isPopup);
+
+  // When running in the side panel / popup, explicitly grab focus and focus
+  // the search input. `autoFocus` alone isn't enough because the side panel
+  // window may not have focus when it opens.
+  useEffect(() => {
+    if (!isPopup) return;
+    window.focus();
+    const focusInput = () => {
+      const input = document.querySelector<HTMLInputElement>('input[aria-label="Command search"]');
+      input?.focus();
+    };
+    focusInput();
+    const raf = requestAnimationFrame(focusInput);
+    return () => cancelAnimationFrame(raf);
+  }, [isPopup]);
 
   useEffect(() => {
-    const onKeyDown = (event: Event) => {
-      if (!(event instanceof KeyboardEvent) || event.key !== 'Escape') return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
       event.preventDefault();
       event.stopPropagation();
       onClose();
     };
+
+    if (isPopup) {
+      window.addEventListener('keydown', onKeyDown);
+      return () => window.removeEventListener('keydown', onKeyDown);
+    }
 
     let root: ShadowRoot | null = null;
     for (const child of document.body.children) {
@@ -119,16 +133,31 @@ export function FlickShell({ onClose }: FlickShellProps) {
     }
     if (!root) return;
 
-    root.addEventListener('keydown', onKeyDown, true);
-    return () => root.removeEventListener('keydown', onKeyDown, true);
-  }, [onClose]);
+    root.addEventListener('keydown', onKeyDown as EventListener, true);
+    return () => root.removeEventListener('keydown', onKeyDown as EventListener, true);
+  }, [onClose, isPopup]);
+
+  const handleSendAction = useCallback(
+    (item: CommandItem) => {
+      const message: Record<string, unknown> = {
+        type: 'EXECUTE_ACTION',
+        action: item.action,
+      };
+      if (activeTabId != null) {
+        message.tabId = activeTabId;
+      }
+      browser.runtime.sendMessage(message);
+      onClose();
+    },
+    [onClose, activeTabId],
+  );
 
   const handleSelect = useCallback(
     (value: string) => {
       const item = results.find((result) => result.id === value);
-      if (item) void runCommand(item, onClose);
+      if (item) handleSendAction(item);
     },
-    [results, onClose],
+    [results, handleSendAction],
   );
 
   const existingTriggers = useMemo(
@@ -164,8 +193,8 @@ export function FlickShell({ onClose }: FlickShellProps) {
   return (
     <div
       className={cn(
-        'fixed inset-0 z-[2147483647] flex items-start justify-center pt-[15vh]',
-        'bg-black/40 backdrop-blur-sm',
+        'fixed inset-0 z-[2147483647] flex items-start justify-center',
+        isPopup ? 'pt-6' : 'pt-[15vh] bg-black/40 backdrop-blur-sm',
       )}
       role="dialog"
       aria-label="Flick"

@@ -7,7 +7,10 @@ export default defineConfig({
   manifest: {
     name: 'Flick',
     description: 'A command palette for Chrome — navigate fast, run utilities, and manage shortcuts.',
-    permissions: ['storage', 'tabs', 'bookmarks', 'history', 'activeTab', 'scripting', 'browsingData', 'downloads'],
+    permissions: ['storage', 'tabs', 'bookmarks', 'history', 'activeTab', 'scripting', 'browsingData', 'downloads', 'sidePanel'],
+    side_panel: {
+      default_path: 'sidepanel.html',
+    },
     commands: {
       'open-flick': {
         suggested_key: {

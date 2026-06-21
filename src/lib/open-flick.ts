@@ -25,21 +25,33 @@ export async function toggleFlickOnTab(tabId: number): Promise<void> {
   try {
     await browser.tabs.sendMessage(tabId, { type: 'FLICK_TOGGLE' });
   } catch (error) {
-    // The content script may not be loaded yet (e.g. the tab was already open
-    // when the extension was installed/updated, or it was invalidated). Inject
-    // it on demand and retry once.
-    if (isMissingReceiverError(error)) {
+    if (!isMissingReceiverError(error)) throw error;
+
+    try {
       await browser.scripting.executeScript({
         target: { tabId },
         files: ['/content-scripts/flick.js'],
       });
-      // Brief delay so the injected script can initialise its listener.
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      await browser.tabs.sendMessage(tabId, { type: 'FLICK_TOGGLE' });
-      return;
+    } catch {
+      throw new Error('RESTRICTED_PAGE');
     }
-    throw error;
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await browser.tabs.sendMessage(tabId, { type: 'FLICK_TOGGLE' });
   }
+}
+
+/**
+ * Opens the side panel. MUST be called synchronously (no prior `await`) so the
+ * user gesture from the keyboard shortcut is preserved — `sidePanel.open()`
+ * requires a user gesture and any `await` invalidates it.
+ *
+ * Uses `chrome.sidePanel.open()` directly (not the `browser` polyfill) because
+ * the polyfill's promise wrapping can insert a microtask that breaks gesture
+ * propagation.
+ */
+export function openFlickSidePanel(tabId: number): void {
+  chrome.sidePanel.open({ tabId });
 }
 
 export async function openFlickOnActiveTab(): Promise<{ ok: true } | { ok: false; reason: string }> {
@@ -49,17 +61,25 @@ export async function openFlickOnActiveTab(): Promise<{ ok: true } | { ok: false
     return { ok: false, reason: 'No active tab found.' };
   }
 
-  if (isRestrictedTabUrl(tab.url)) {
-    return {
-      ok: false,
-      reason: 'Flick cannot run on chrome:// pages, the Web Store, or restricted pages. Open a normal website first.',
-    };
-  }
-
   try {
     await toggleFlickOnTab(tab.id);
     return { ok: true };
   } catch (error) {
+    if (error instanceof Error && error.message === 'RESTRICTED_PAGE') {
+      try {
+        await browser.sidePanel.setOptions({
+          tabId: tab.id,
+          path: 'sidepanel.html',
+          enabled: true,
+        });
+        await browser.sidePanel.open({ tabId: tab.id });
+        return { ok: true };
+      } catch (sidePanelError) {
+        console.error('[Flick] Side panel failed:', sidePanelError);
+        return { ok: false, reason: 'Failed to open Flick side panel on this page.' };
+      }
+    }
+
     console.error('[Flick] Failed to open palette:', error);
     return {
       ok: false,
