@@ -199,11 +199,28 @@ export default defineContentScript({
 
       if (!ui) {
         ui = await createShadowRootUi(ctx, {
-          name: 'flick',
+          name: 'flick-palette',
           position: 'overlay',
           anchor: 'body',
           onMount(uiContainer, _shadow, shadowHost) {
             shadowHost.setAttribute('data-flick-host', '');
+
+            // Host pages may set a custom root font-size (e.g. YouTube uses
+            // 10px). Since `rem` units inside a shadow root still resolve
+            // against the document root, we scale the internal <html> so Flick
+            // always renders at a 16px base font-size.
+            const rootFontSize = parseFloat(
+              getComputedStyle(document.documentElement).fontSize,
+            );
+            const scale =
+              Number.isFinite(rootFontSize) && rootFontSize > 0
+                ? 16 / rootFontSize
+                : 1;
+            const innerHtml = _shadow.querySelector('html');
+            if (innerHtml) {
+              innerHtml.style.setProperty('--flick-scale', String(scale));
+            }
+
             const app = document.createElement('div');
             app.id = 'flick-root';
             uiContainer.append(app);
@@ -234,16 +251,16 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((message) => {
       if (message?.type === 'FLICK_TOGGLE') {
         void toggle();
-        return true;
+        return false;
       }
       if (message?.type === 'FLICK_HIDE') {
         close();
-        return true;
+        return false;
       }
       if (message?.type === 'ENTER_ELEMENT_SELECTION') {
         close();
         startElementSelection();
-        return true;
+        return false;
       }
       return false;
     });

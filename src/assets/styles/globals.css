@@ -52,6 +52,18 @@ body {
   font-family: var(--font-sans);
 }
 
+/*
+ * Host pages like YouTube set a small root font-size (e.g. 10px), which shrinks
+ * any UI inside a shadow root because `rem` units still resolve against the
+ * document root. Normalize by scaling the shadow root's internal <html> so the
+ * UI always renders as if the root font-size were 16px.
+ */
+:host([data-flick-host]) html {
+  width: calc(100vw / var(--flick-scale, 1));
+  height: calc(100vh / var(--flick-scale, 1));
+  zoom: var(--flick-scale, 1);
+}
+
 [cmdk-group-heading] {
   padding: 0.5rem 0.75rem 0.25rem;
   font-size: 0.6875rem;

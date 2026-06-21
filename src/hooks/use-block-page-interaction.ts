@@ -17,15 +17,25 @@ function isInsideFlick(target: EventTarget | null, host: HTMLElement): boolean {
   return host === target || host.shadowRoot?.contains(target) === true;
 }
 
+function isBrowserShortcut(event: KeyboardEvent): boolean {
+  // Let browser chrome shortcuts through (Cmd/Ctrl/Alt + key). Flick only uses
+  // modifier combos inside the palette (e.g. Ctrl+N/P/J/K for navigation), and
+  // those originate from inside the shadow root, so they won't reach this check.
+  return event.metaKey || event.ctrlKey || event.altKey;
+}
+
 /**
  * While Flick is open: blur the page, mark siblings inert, and stop keyboard
  * events from reaching the host page (e.g. GitHub's "/" search shortcut).
  *
- * Listeners are attached to `window` in the capture phase — the earliest
+ * Listeners are attached to `document` in the capture phase — the earliest
  * interception point — so page-level handlers on `document`/`window` never
  * see the event.  Events originating inside the Shadow DOM are retargeted
  * to the host and allowed through; `stopBubbleToPage` then prevents them
  * from bubbling back to the page.
+ *
+ * Browser shortcuts (Cmd/Ctrl/Alt + key) are intentionally allowed so users
+ * can still use Cmd+L, Cmd+T, Cmd+W, etc. while the palette is open.
  */
 export function useBlockPageInteraction(active: boolean) {
   useEffect(() => {
@@ -52,6 +62,7 @@ export function useBlockPageInteraction(active: boolean) {
 
     const blockOutside = (event: Event) => {
       if (isInsideFlick(event.target, host)) return;
+      if (event instanceof KeyboardEvent && isBrowserShortcut(event)) return;
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
@@ -98,7 +109,7 @@ export function useBlockPageInteraction(active: boolean) {
 
     return () => {
       for (const type of keyboardEvents) {
-        window.removeEventListener(type, blockOutside, true);
+        document.removeEventListener(type, blockOutside, true);
         host.removeEventListener(type, stopBubbleToPage);
       }
 

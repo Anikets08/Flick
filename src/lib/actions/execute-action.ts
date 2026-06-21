@@ -5,6 +5,15 @@ async function getTab(tabId: number) {
 }
 
 async function screenshot(tabId: number): Promise<void> {
+  // Hide the Flick palette before capturing so the overlay isn't included in
+  // the screenshot.
+  try {
+    await browser.tabs.sendMessage(tabId, { type: 'FLICK_HIDE' });
+  } catch {
+    // Palette may already be closed or the content script may be unavailable.
+  }
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
   const tab = await getTab(tabId);
   const dataUrl = await browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
   const timestamp = Date.now();
