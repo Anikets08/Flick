@@ -1,0 +1,52 @@
+{
+  "name": "flick",
+  "description": "A command palette for Chrome — navigate fast, run utilities, and manage shortcuts.",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Anikets08/flick.git"
+  },
+  "keywords": [
+    "chrome-extension",
+    "command-palette",
+    "flick",
+    "spotlight",
+    "productivity",
+    "aliases",
+    "shortcuts",
+    "developer-tools"
+  ],
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "compile": "tsc --noEmit",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "fuse.js": "^7.1.0",
+    "lucide-react": "^0.525.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwind-merge": "^3.3.1",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.11",
+    "@types/chrome": "^0.1.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@wxt-dev/module-react": "^1.1.5",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^5.9.3",
+    "wxt": "^0.20.26"
+  }
+}
