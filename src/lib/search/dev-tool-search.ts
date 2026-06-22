@@ -3,7 +3,7 @@ import type { CommandItem } from '@/types';
 
 export function searchDevTools(query: string): CommandItem[] {
   const trimmed = query.trim().toLowerCase();
-  if (!trimmed) return [];
+  if (!trimmed) return DEV_TOOLS;
 
   const tokens = trimmed.split(/\s+/);
 

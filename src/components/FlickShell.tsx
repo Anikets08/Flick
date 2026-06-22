@@ -16,15 +16,11 @@ import {
   Trash2,
   Volume2,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useBlockPageInteraction } from '@/hooks/use-block-page-interaction';
 import { useFlickSearch } from '@/hooks/use-flick-search';
-import { SUGGESTIONS } from '@/data/default-aliases';
-import { SNIPPET_SUGGESTIONS } from '@/data/default-snippets';
-import { getAllAliases, saveAliases } from '@/lib/storage/aliases';
-import { getAllSnippets, saveSnippets } from '@/lib/storage/snippets';
 import { cn } from '@/lib/cn';
-import type { CommandItem, TextSnippet, UrlAlias } from '@/types';
+import type { CommandItem } from '@/types';
 
 interface FlickShellProps {
   onClose: () => void;
@@ -34,24 +30,6 @@ interface FlickShellProps {
 
 function openSettings(): void {
   void browser.runtime.sendMessage({ type: 'OPEN_OPTIONS' });
-}
-
-async function addSuggestion(
-  suggestion: UrlAlias,
-  existingTriggers: Set<string>,
-  onDone: () => void,
-): Promise<void> {
-  if (existingTriggers.has(suggestion.trigger)) {
-    onDone();
-    return;
-  }
-
-  const current = await getAllAliases();
-  await saveAliases([
-    ...current,
-    { ...suggestion, id: crypto.randomUUID(), enabled: true },
-  ]);
-  onDone();
 }
 
 const actionIcon = (item: CommandItem) => {
@@ -89,7 +67,7 @@ const actionIcon = (item: CommandItem) => {
 
 /** Command palette — alias search and navigation (Phase 1) */
 export function FlickShell({ onClose, isPopup, activeTabId }: FlickShellProps) {
-  const { query, setQuery, results, aliasResults, devToolResults, snippetResults, aliases, snippets, loading } = useFlickSearch();
+  const { query, setQuery, results, aliasResults, devToolResults, snippetResults, loading } = useFlickSearch();
 
   useBlockPageInteraction(!isPopup);
 
@@ -160,35 +138,10 @@ export function FlickShell({ onClose, isPopup, activeTabId }: FlickShellProps) {
     [results, handleSendAction],
   );
 
-  const existingTriggers = useMemo(
-    () => new Set(aliases.map((a) => a.trigger)),
-    [aliases],
-  );
-
-  const missing = useMemo(
-    () => SUGGESTIONS.filter((s) => !existingTriggers.has(s.trigger)),
-    [existingTriggers],
-  );
-
-  const existingSnippetTriggers = useMemo(
-    () => new Set(snippets.map((s) => s.trigger)),
-    [snippets],
-  );
-
-  const missingSnippets = useMemo(
-    () => SNIPPET_SUGGESTIONS.filter((s) => !existingSnippetTriggers.has(s.trigger)),
-    [existingSnippetTriggers],
-  );
-
-  const addSnippetSuggestion = async (suggestion: TextSnippet) => {
-    if (existingSnippetTriggers.has(suggestion.trigger)) return;
-    const current = await getAllSnippets();
-    await saveSnippets([
-      ...current,
-      { ...suggestion, id: crypto.randomUUID(), enabled: true },
-    ]);
-    existingSnippetTriggers.add(suggestion.trigger);
-  };
+  const isDefault = query === '';
+  const visibleAliases = isDefault ? aliasResults.slice(0, 3) : aliasResults;
+  const visibleSnippets = isDefault ? snippetResults.slice(0, 3) : snippetResults;
+  const visibleDevTools = isDefault ? devToolResults.slice(0, 3) : devToolResults;
 
   return (
     <div
@@ -232,9 +185,9 @@ export function FlickShell({ onClose, isPopup, activeTabId }: FlickShellProps) {
                 No matching shortcuts.
               </Command.Empty>
 
-              {aliasResults.length > 0 && (
+              {visibleAliases.length > 0 && (
                 <Command.Group heading="Shortcuts">
-                  {aliasResults.map((item) => (
+                  {visibleAliases.map((item) => (
                     <Command.Item
                       key={item.id}
                       value={item.id}
@@ -260,9 +213,9 @@ export function FlickShell({ onClose, isPopup, activeTabId }: FlickShellProps) {
                 </Command.Group>
               )}
 
-              {snippetResults.length > 0 && (
+              {visibleSnippets.length > 0 && (
                 <Command.Group heading="Snippets">
-                  {snippetResults.map((item) => (
+                  {visibleSnippets.map((item) => (
                     <Command.Item
                       key={item.id}
                       value={item.id}
@@ -288,9 +241,9 @@ export function FlickShell({ onClose, isPopup, activeTabId }: FlickShellProps) {
                 </Command.Group>
               )}
 
-              {devToolResults.length > 0 && (
+              {visibleDevTools.length > 0 && (
                 <Command.Group heading="Developer Tools">
-                  {devToolResults.map((item) => (
+                  {visibleDevTools.map((item) => (
                     <Command.Item
                       key={item.id}
                       value={item.id}
@@ -318,43 +271,6 @@ export function FlickShell({ onClose, isPopup, activeTabId }: FlickShellProps) {
             </>
           )}
         </Command.List>
-
-        {/* ── Suggestion chips ── */}
-        {query === '' && (missing.length > 0 || missingSnippets.length > 0) && (
-          <div className="border-t border-[var(--flick-border)] px-4 py-2.5">
-            <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--flick-muted)]">
-              Quick add
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {missing.map((s) => (
-                <button
-                  key={s.trigger}
-                  onClick={() =>
-                    void addSuggestion(s, existingTriggers, () => {
-                      existingTriggers.add(s.trigger);
-                    })
-                  }
-                  className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs transition-colors hover:border-[var(--flick-accent)] hover:bg-white/10"
-                  title={s.description}
-                >
-                  <span className="font-medium">{s.trigger}</span>
-                  <span className="ml-1 text-[var(--flick-muted)]">{s.description}</span>
-                </button>
-              ))}
-              {missingSnippets.map((s) => (
-                <button
-                  key={s.trigger}
-                  onClick={() => void addSnippetSuggestion(s)}
-                  className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs transition-colors hover:border-[var(--flick-accent)] hover:bg-white/10"
-                  title={s.label}
-                >
-                  <span className="font-medium">{s.trigger}</span>
-                  <span className="ml-1 text-[var(--flick-muted)]">{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="flex items-center justify-between border-t border-[var(--flick-border)] px-4 py-2 text-xs text-[var(--flick-muted)]">
           <div className="flex items-center gap-2">

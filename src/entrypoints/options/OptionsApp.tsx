@@ -21,20 +21,19 @@ import type { TextSnippet, UrlAlias } from '@/types';
 import { getAllAliases, saveAliases } from '@/lib/storage/aliases';
 import { getAllSnippets, saveSnippets } from '@/lib/storage/snippets';
 import { DEV_TOOLS } from '@/data/dev-tools';
-import { SUGGESTIONS } from '@/data/default-aliases';
-import { SNIPPET_SUGGESTIONS } from '@/data/default-snippets';
+
 import { cn } from '@/lib/cn';
 
 type Tab = 'shortcuts' | 'snippets' | 'features';
 
-type FormState = Pick<UrlAlias, 'trigger' | 'url' | 'description' | 'keywords' | 'newTab'>;
+type FormState = Pick<UrlAlias, 'trigger' | 'url' | 'description' | 'newTab'> & { keywords: string };
 
 const emptyForm: FormState = {
   trigger: '',
   url: '',
   description: '',
-  keywords: [],
-  newTab: false,
+  keywords: '',
+  newTab: true,
 };
 
 const TABS: { id: Tab; label: string; icon: typeof Link2; hint: string }[] = [
@@ -47,9 +46,6 @@ function generateId(): string {
   return crypto.randomUUID();
 }
 
-function keywordsString(keywords?: string[]): string {
-  return keywords?.length ? keywords.join(', ') : '';
-}
 
 function parseKeywords(value: string): string[] {
   return value
@@ -328,11 +324,11 @@ export function OptionsApp() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [snippetForm, setSnippetForm] = useState<Pick<TextSnippet, 'trigger' | 'text' | 'label' | 'keywords'>>({
+  const [snippetForm, setSnippetForm] = useState<Pick<TextSnippet, 'trigger' | 'text' | 'label'> & { keywords: string }>({
     trigger: '',
     text: '',
     label: '',
-    keywords: [],
+    keywords: '',
   });
   const [editingSnippetId, setEditingSnippetId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -363,7 +359,7 @@ export function OptionsApp() {
       persist(
         aliases.map((a) =>
           a.id === editingId
-            ? { ...a, ...form, keywords: parseKeywords(keywordsString(form.keywords)) }
+            ? { ...a, ...form, keywords: parseKeywords(form.keywords) }
             : a,
         ),
       );
@@ -373,7 +369,7 @@ export function OptionsApp() {
         trigger: form.trigger.trim(),
         url: form.url.trim(),
         description: (form.description ?? '').trim() || undefined,
-        keywords: parseKeywords(keywordsString(form.keywords)),
+        keywords: parseKeywords(form.keywords),
         newTab: form.newTab,
         enabled: true,
       };
@@ -389,8 +385,8 @@ export function OptionsApp() {
       trigger: alias.trigger,
       url: alias.url,
       description: alias.description ?? '',
-      keywords: alias.keywords ?? [],
-      newTab: alias.newTab ?? false,
+      keywords: alias.keywords?.join(', ') ?? '',
+      newTab: alias.newTab ?? true,
     });
     setEditingId(alias.id);
     setModalOpen(true);
@@ -418,19 +414,13 @@ export function OptionsApp() {
     );
   };
 
-  const addSuggestion = (suggestion: UrlAlias) => {
-    const existing = aliases.find((a) => a.trigger === suggestion.trigger);
-    if (existing) return;
-    persist([...aliases, { ...suggestion, id: generateId(), enabled: true }]);
-  };
-
   const persistSnippets = useCallback(async (next: TextSnippet[]) => {
     setSnippets(next);
     await saveSnippets(next);
   }, []);
 
   const resetSnippetForm = () => {
-    setSnippetForm({ trigger: '', text: '', label: '', keywords: [] });
+    setSnippetForm({ trigger: '', text: '', label: '', keywords: '' });
     setEditingSnippetId(null);
   };
 
@@ -442,7 +432,7 @@ export function OptionsApp() {
       persistSnippets(
         snippets.map((s) =>
           s.id === editingSnippetId
-            ? { ...s, ...snippetForm, keywords: parseKeywords(keywordsString(snippetForm.keywords)) }
+            ? { ...s, ...snippetForm, keywords: parseKeywords(snippetForm.keywords) }
             : s,
         ),
       );
@@ -452,7 +442,7 @@ export function OptionsApp() {
         trigger: snippetForm.trigger.trim(),
         text: snippetForm.text.trim(),
         label: snippetForm.label?.trim() || undefined,
-        keywords: parseKeywords(keywordsString(snippetForm.keywords)),
+        keywords: parseKeywords(snippetForm.keywords),
         enabled: true,
       };
       persistSnippets([...snippets, newSnippet]);
@@ -467,7 +457,7 @@ export function OptionsApp() {
       trigger: snippet.trigger,
       text: snippet.text,
       label: snippet.label ?? '',
-      keywords: snippet.keywords ?? [],
+      keywords: snippet.keywords?.join(', ') ?? '',
     });
     setEditingSnippetId(snippet.id);
     setModalOpen(true);
@@ -481,12 +471,6 @@ export function OptionsApp() {
     persistSnippets(
       snippets.map((s) => (s.id === id ? { ...s, enabled: !(s.enabled ?? true) } : s)),
     );
-  };
-
-  const addSnippetSuggestion = (suggestion: TextSnippet) => {
-    const existing = snippets.find((s) => s.trigger === suggestion.trigger);
-    if (existing) return;
-    persistSnippets([...snippets, { ...suggestion, id: generateId(), enabled: true }]);
   };
 
   const formIsValid = form.trigger.trim() && form.url.trim();
@@ -584,41 +568,8 @@ export function OptionsApp() {
                   <section>
                     <SectionHeading>Get started</SectionHeading>
                     <p className="mb-5 max-w-prose text-sm leading-relaxed text-[var(--flick-muted)]">
-                      No shortcuts yet. Pick from the suggestions below or add your own with the New button.
+                      No shortcuts yet. Add your first one with the New button above.
                     </p>
-                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                      {SUGGESTIONS.map((s) => {
-                        const added = aliases.some((a) => a.trigger === s.trigger);
-                        return (
-                          <button
-                            key={s.id + s.trigger}
-                            onClick={() => addSuggestion(s)}
-                            disabled={added}
-                            className={cn(
-                              'group flex items-center gap-3 rounded-xl border p-4 text-left transition-all duration-200',
-                              added
-                                ? 'cursor-default border-transparent opacity-30'
-                                : 'border-[var(--flick-border)] bg-[var(--flick-surface)]/50 hover:-translate-y-0.5 hover:border-[var(--flick-accent)]/40 hover:bg-[var(--flick-hover)]/60 hover:shadow-[0_12px_28px_-16px_oklch(0.65_0.2_250/0.5)]',
-                            )}
-                          >
-                            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-b from-white/[0.08] to-white/[0.02] text-xs font-semibold text-[var(--flick-accent)] ring-1 ring-white/[0.06]">
-                              {s.trigger.slice(0, 2)}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium leading-snug">{s.trigger}</div>
-                              <div className="truncate text-xs text-[var(--flick-muted)]">
-                                {s.description}
-                              </div>
-                            </div>
-                            {!added && (
-                              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/[0.04] text-[10px] text-[var(--flick-muted)] opacity-0 transition-all duration-200 group-hover:bg-[var(--flick-accent)]/15 group-hover:text-[var(--flick-accent)] group-hover:opacity-100">
-                                <Plus className="size-3" />
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
                   </section>
                 ) : (
                   <section>
@@ -703,39 +654,8 @@ export function OptionsApp() {
                   <section>
                     <SectionHeading>Get started</SectionHeading>
                     <p className="mb-5 max-w-prose text-sm leading-relaxed text-[var(--flick-muted)]">
-                      No snippets yet. Pick from the suggestions below or add your own with the New button.
+                      No snippets yet. Add your first one with the New button above.
                     </p>
-                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                      {SNIPPET_SUGGESTIONS.map((s) => {
-                        const added = snippets.some((a) => a.trigger === s.trigger);
-                        return (
-                          <button
-                            key={s.id + s.trigger}
-                            onClick={() => addSnippetSuggestion(s)}
-                            disabled={added}
-                            className={cn(
-                              'group flex items-center gap-3 rounded-xl border p-4 text-left transition-all duration-200',
-                              added
-                                ? 'cursor-default border-transparent opacity-30'
-                                : 'border-[var(--flick-border)] bg-[var(--flick-surface)]/50 hover:-translate-y-0.5 hover:border-[var(--flick-accent)]/40 hover:bg-[var(--flick-hover)]/60 hover:shadow-[0_12px_28px_-16px_oklch(0.65_0.2_250/0.5)]',
-                            )}
-                          >
-                            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-b from-white/[0.08] to-white/[0.02] text-xs font-semibold text-[var(--flick-accent)] ring-1 ring-white/[0.06]">
-                              {s.trigger.slice(0, 2)}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium leading-snug">{s.trigger}</div>
-                              <div className="truncate text-xs text-[var(--flick-muted)]">{s.label}</div>
-                            </div>
-                            {!added && (
-                              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/[0.04] text-[10px] text-[var(--flick-muted)] opacity-0 transition-all duration-200 group-hover:bg-[var(--flick-accent)]/15 group-hover:text-[var(--flick-accent)] group-hover:opacity-100">
-                                <Plus className="size-3" />
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
                   </section>
                 ) : (
                   <section>
@@ -868,13 +788,13 @@ export function OptionsApp() {
                 label="Keywords"
                 hint="(comma-separated)"
                 placeholder="github, pr, pulls"
-                value={keywordsString(form.keywords)}
-                onChange={(v) => setForm({ ...form, keywords: parseKeywords(v) })}
+                value={form.keywords}
+                onChange={(v) => setForm({ ...form, keywords: v })}
               />
               <div className="flex items-center justify-between gap-3 pt-1">
                 <span className="text-sm text-[var(--flick-muted)]">Open in new tab</span>
                 <Toggle
-                  enabled={form.newTab ?? false}
+                  enabled={form.newTab ?? true}
                   onChange={() => setForm({ ...form, newTab: !form.newTab })}
                 />
               </div>
@@ -906,8 +826,8 @@ export function OptionsApp() {
                 label="Keywords"
                 hint="(comma-separated)"
                 placeholder="mail, contact"
-                value={keywordsString(snippetForm.keywords)}
-                onChange={(v) => setSnippetForm({ ...snippetForm, keywords: parseKeywords(v) })}
+                value={snippetForm.keywords}
+                onChange={(v) => setSnippetForm({ ...snippetForm, keywords: v })}
               />
             </>
           )}

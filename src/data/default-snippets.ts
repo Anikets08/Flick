@@ -31,29 +31,4 @@ export const DEFAULT_SNIPPETS: TextSnippet[] = [
   },
 ];
 
-export const SNIPPET_SUGGESTIONS: TextSnippet[] = [
-  {
-    id: 'suggest-email',
-    trigger: 'email',
-    text: '',
-    label: 'your@email.com — frequently used email',
-  },
-  {
-    id: 'suggest-address',
-    trigger: 'address',
-    text: '',
-    label: 'Home or work mailing address',
-  },
-  {
-    id: 'suggest-phone',
-    trigger: 'phone',
-    text: '',
-    label: 'Personal phone number',
-  },
-  {
-    id: 'suggest-name',
-    trigger: 'name',
-    text: '',
-    label: 'Your full name for forms',
-  },
-];
+
