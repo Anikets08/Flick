@@ -26,11 +26,12 @@ import { cn } from '@/lib/cn';
 
 type Tab = 'shortcuts' | 'snippets' | 'features';
 
-type FormState = Pick<UrlAlias, 'trigger' | 'url' | 'description' | 'newTab'> & { keywords: string };
+type FormState = Pick<UrlAlias, 'trigger' | 'url' | 'description' | 'newTab'> & { keywords: string; variableSuffix: string };
 
 const emptyForm: FormState = {
   trigger: '',
   url: '',
+  variableSuffix: '',
   description: '',
   keywords: '',
   newTab: true,
@@ -355,11 +356,22 @@ export function OptionsApp() {
     e.preventDefault();
     if (!form.trigger.trim() || !form.url.trim()) return;
 
+    const suffix = form.variableSuffix.trim();
+    const urlTemplate = suffix ? form.url.trim() + suffix : undefined;
+
     if (editingId) {
       persist(
         aliases.map((a) =>
           a.id === editingId
-            ? { ...a, ...form, keywords: parseKeywords(form.keywords) }
+            ? {
+                ...a,
+                trigger: form.trigger,
+                url: form.url,
+                urlTemplate,
+                description: form.description || undefined,
+                keywords: parseKeywords(form.keywords),
+                newTab: form.newTab,
+              }
             : a,
         ),
       );
@@ -368,6 +380,7 @@ export function OptionsApp() {
         id: generateId(),
         trigger: form.trigger.trim(),
         url: form.url.trim(),
+        urlTemplate,
         description: (form.description ?? '').trim() || undefined,
         keywords: parseKeywords(form.keywords),
         newTab: form.newTab,
@@ -381,9 +394,14 @@ export function OptionsApp() {
   };
 
   const startEdit = (alias: UrlAlias) => {
+    const baseUrl = alias.url;
+    const suffix = alias.urlTemplate?.startsWith(baseUrl)
+      ? alias.urlTemplate.slice(baseUrl.length)
+      : (alias.urlTemplate ?? '');
     setForm({
       trigger: alias.trigger,
-      url: alias.url,
+      url: baseUrl,
+      variableSuffix: suffix,
       description: alias.description ?? '',
       keywords: alias.keywords?.join(', ') ?? '',
       newTab: alias.newTab ?? true,
@@ -473,7 +491,8 @@ export function OptionsApp() {
     );
   };
 
-  const formIsValid = form.trigger.trim() && form.url.trim();
+  const formIsValid = form.trigger.trim() && form.url.trim()
+    && (!form.variableSuffix.trim() || form.variableSuffix.includes('{variable}'));
 
   const snippetFormIsValid = snippetForm.trigger.trim() && snippetForm.text.trim();
 
@@ -599,6 +618,11 @@ export function OptionsApp() {
                             <code className="mt-0.5 block truncate font-mono text-xs tracking-tight text-[var(--flick-muted)]/60">
                               {alias.url}
                             </code>
+                            {alias.urlTemplate && (
+                              <code className="mt-0.5 block truncate font-mono text-xs tracking-tight text-[var(--flick-accent)]/60">
+                                {alias.urlTemplate}
+                              </code>
+                            )}
                             {alias.keywords && alias.keywords.length > 0 && (
                               <div className="mt-2 flex flex-wrap gap-1">
                                 {alias.keywords.map((kw) => (
@@ -773,11 +797,37 @@ export function OptionsApp() {
               />
               <Input
                 label="URL"
-                placeholder="https://github.com/org/repo/pulls"
+                placeholder="https://www.youtube.com"
                 value={form.url}
                 onChange={(v) => setForm({ ...form, url: v })}
                 mono
               />
+              <label className="group block">
+                <span className="mb-1.5 block text-xs font-medium tracking-wide text-[var(--flick-muted)]">
+                  Variable path
+                  <span className="ml-1 font-normal opacity-50">(optional)</span>
+                </span>
+                <div
+                  className={cn(
+                    'flex items-center overflow-hidden rounded-lg border bg-white/[0.03] transition-all duration-200',
+                    'border-[var(--flick-border)]',
+                    'focus-within:border-[var(--flick-accent)]/50 focus-within:bg-white/[0.05] focus-within:shadow-[0_0_0_3px_oklch(0.65_0.2_250/0.12)]',
+                  )}
+                >
+                  <span className="shrink truncate border-r border-[var(--flick-border)] py-2.5 pl-3.5 pr-2.5 font-mono text-xs tracking-tight text-[var(--flick-muted)]/50 select-none">
+                    {form.url || 'https://example.com'}
+                  </span>
+                  <input
+                    value={form.variableSuffix}
+                    onChange={(e) => setForm({ ...form, variableSuffix: e.target.value })}
+                    placeholder="results?search_query={variable}"
+                    className="min-w-0 flex-1 bg-transparent py-2.5 pl-3 pr-3.5 font-mono text-sm tracking-tight outline-none placeholder:text-[var(--flick-muted)]/30"
+                  />
+                </div>
+              </label>
+              <p className="text-[11px] leading-relaxed text-[var(--flick-muted)]">
+                Use <code className="rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[11px]">{'{variable}'}</code> as a placeholder. Type <code className="rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[11px]">{form.trigger || 'trigger'}</code> followed by a value in the palette to search directly.
+              </p>
               <Input
                 label="Description"
                 placeholder="What does this shortcut do?"

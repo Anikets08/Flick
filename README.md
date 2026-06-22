@@ -30,6 +30,7 @@ Flick brings the speed of macOS Spotlight to your browser. Instead of reaching f
 | `dark` | Toggles dark mode on the page |
 | `grid` | Overlays a 12-column design grid |
 | `cache` | Clears cache and reloads the page |
+| `yt tony stark` | Searches YouTube for "tony stark" |
 
 Everything is configurable from a polished settings page — add your own shortcuts, snippets, and toggle built-in tools on or off.
 
@@ -47,6 +48,21 @@ Custom triggers that navigate to any URL. Managed from the **Settings** page or 
 - Enable/disable without deleting
 - Synced across devices via `chrome.storage.sync`
 - 12 popular-site suggestions ready to add in one click
+
+### URL Templates
+
+Shortcuts can include a `{variable}` placeholder that accepts input from the palette. Type the trigger followed by a value to search or navigate with dynamic parameters.
+
+| You type | Result |
+|---|---|
+| `yt` | Opens youtube.com |
+| `yt tony stark` | Searches YouTube for "tony stark" |
+| `backend-pull 123` | Opens `github.com/../pull/123` |
+
+- One `{variable}` placeholder per template URL
+- URL-encoded substitution for safe navigation
+- Falls back to the bare `url` when no value is provided
+- Set up in Settings → Shortcuts → New/Edit → Template URL field
 
 ### Text Snippets
 
@@ -267,7 +283,7 @@ For the full guide, see [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md).
 - [x] 14 built-in developer tools (screenshot, color picker, dark mode, grid, rulers, tab management, copy, bookmark, clear cache)
 - [x] Element-selection screenshot mode
 - [x] Settings page with sidebar nav, modal forms, sticky positioning
-- [x] Quick-add suggestion chips in the palette
+- [x] URL templates with `{variable}` placeholder (`yt tony stark` → YouTube search)
 - [x] Toast notifications for all actions
 - [x] Page interaction guard (keyboard event blocking)
 - [x] Restricted-page detection
@@ -277,7 +293,6 @@ For the full guide, see [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md).
 - [ ] Tab search & switching provider
 - [ ] Bookmark search provider
 - [ ] History search provider
-- [ ] URL templates (`pr 123` → `.../pull/123`)
 - [ ] Alias import/export (JSON)
 - [ ] Recent commands
 - [ ] Light/dark theme toggle for the palette

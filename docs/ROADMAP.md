@@ -71,7 +71,7 @@ Phased plan for Flick. Each phase is shippable on its own.
 
 **Goal:** Power-user features and production quality.
 
-- [ ] **URL templates** — `pr 123` → `.../pull/123` (see [ALIASES.md](./ALIASES.md))
+- [x] **URL templates** — `pr 123` → `.../pull/123` (see [ALIASES.md](./ALIASES.md))
 - [ ] Alias import/export (JSON)
 - [ ] Custom shortcut per alias (optional)
 - [ ] Light/dark theme toggle for the palette

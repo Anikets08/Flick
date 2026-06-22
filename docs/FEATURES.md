@@ -12,6 +12,7 @@ Customizable shortcuts that navigate to a URL. Managed from the **Settings** pag
 |---------|--------|-------------|
 | `gh` | github.com | GitHub |
 | `yt` | youtube.com | YouTube |
+| `yt` | youtube.com (bare) / template search | YouTube |
 | `mdn` | developer.mozilla.org | MDN Web Docs |
 | `cal` | calendar.google.com | Google Calendar |
 
@@ -22,6 +23,22 @@ Aliases support:
 - **Enable/disable** without deleting
 - **Sync across devices** via `chrome.storage.sync`
 - **Quick-add suggestion chips** for 12 popular sites
+
+### URL Templates
+
+Shortcuts can include a `{variable}` placeholder that accepts input from the palette. Type the trigger followed by a value, and the value is URL-encoded and substituted into the template URL.
+
+| Trigger | Template URL | Example input | Resolved URL |
+|---------|-------------|---------------|--------------|
+| `yt` | `https://www.youtube.com/results?search_query={variable}` | `yt tony stark` | `youtube.com/results?search_query=tony%20stark` |
+| `gh-search` | `https://github.com/search?q={variable}` | `gh-search react` | `github.com/search?q=react` |
+
+- **Trigger + value** — first word is the trigger, the rest is the value
+- **Longest-prefix matching** — `backend pull 123` matches trigger `backend-pull` with value `123`
+- **Fallback** — typing just the trigger (no value) opens the bare `url`
+- **Validation** — template URL must contain `{variable}` to be saved
+- **Multi-substitution** — every occurrence of `{variable}` in the URL is replaced
+- **URL encoding** — values are `encodeURIComponent`-encoded for safe navigation
 
 ---
 

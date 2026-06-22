@@ -12,9 +12,10 @@ export const DEFAULT_ALIASES: UrlAlias[] = [
   {
     id: 'yt',
     trigger: 'yt',
-    url: 'https://youtube.com',
+    url: 'https://www.youtube.com',
+    urlTemplate: 'https://www.youtube.com/results?search_query={variable}',
     description: 'YouTube',
-    keywords: ['video', 'watch'],
+    keywords: ['video', 'watch', 'search'],
     newTab: true,
   },
   {

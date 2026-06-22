@@ -21,11 +21,42 @@ function aliasToCommandItem(alias: UrlAlias): CommandItem {
   };
 }
 
+const TEMPLATE_PLACEHOLDER = '{variable}';
+
+function findTemplateMatch(aliases: UrlAlias[], query: string): { alias: UrlAlias; argument: string } | null {
+  const trimmed = query.trim();
+  const tokens = trimmed.split(/\s+/);
+  if (tokens.length < 2) return null;
+
+  const templateAliases = aliases.filter((a) => a.enabled !== false && a.urlTemplate);
+
+  for (let i = tokens.length - 1; i >= 1; i--) {
+    const candidateTrigger = tokens.slice(0, i).join('-').toLowerCase();
+    const matchingAlias = templateAliases.find(
+      (a) => normalizeTrigger(a.trigger) === candidateTrigger,
+    );
+    if (matchingAlias) {
+      const argument = tokens.slice(i).join(' ').trim();
+      if (!argument) continue;
+      return { alias: matchingAlias, argument };
+    }
+  }
+
+  return null;
+}
+
 export function searchAliases(aliases: UrlAlias[], query: string): CommandItem[] {
   const enabled = aliases.filter((alias) => alias.enabled !== false);
 
   if (!query.trim()) {
     return enabled.map(aliasToCommandItem);
+  }
+
+  const templateMatch = findTemplateMatch(enabled, query);
+  if (templateMatch) {
+    const { alias, argument } = templateMatch;
+    const resolvedUrl = alias.urlTemplate!.replaceAll(TEMPLATE_PLACEHOLDER, encodeURIComponent(argument));
+    return [aliasToCommandItem({ ...alias, url: resolvedUrl })];
   }
 
   const normalizedQuery = normalizeTrigger(query);

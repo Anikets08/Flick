@@ -34,32 +34,42 @@ A plain alias maps a **trigger** (what you type) to a **URL** (where you go).
 
 ---
 
-## Template aliases (Phase 4)
+## Template aliases
 
-Templates let one alias cover many URLs with a parameter.
+Templates let one shortcut cover many URLs with a variable parameter.
 
-### Syntax (proposed — confirm in roadmap)
+### Syntax
 
-```
-trigger: pr
-urlTemplate: https://github.com/memora/backend/pull/{{number}}
-pattern: ^pr\s+(\d+)$
+Add a `urlTemplate` field to your shortcut that includes `{variable}` as a placeholder. The bare `url` field is used as the fallback when you type the trigger alone.
+
+```json
+{
+  "id": "yt",
+  "trigger": "yt",
+  "url": "https://www.youtube.com",
+  "urlTemplate": "https://www.youtube.com/results?search_query={variable}",
+  "description": "YouTube",
+  "newTab": true
+}
 ```
 
 | You type | Result |
 |---|---|
-| `pr 123` | `https://github.com/memora/backend/pull/123` |
-| `pr 456` | `https://github.com/memora/backend/pull/456` |
+| `yt` | `https://www.youtube.com` (bare URL) |
+| `yt tony stark` | `https://www.youtube.com/results?search_query=tony%20stark` |
+| `yt cats` | `https://www.youtube.com/results?search_query=cats` |
 
-### Alternative syntaxes under consideration
+### How it works
 
-| Style | Example | Pros |
-|---|---|---|
-| `{{param}}` | `pull/{{number}}` | Readable, Mustache-like |
-| `:param` | `pull/:number` | Rails/Express familiar |
-| `$1` | `pull/$1` | Regex capture groups |
+1. When you type `trigger value`, the palette matches the longest trigger prefix and treats the rest as the variable value.
+2. The value is URL-encoded and substituted for every `{variable}` in the template.
+3. If you type just the trigger (no value), the bare `url` is opened instead.
+4. Multi-word triggers (e.g. `backend-pull`) are supported — `backend pull 123` matches `backend-pull` with value `123`.
 
-**Recommendation:** `{{param}}` with explicit regex pattern per alias — clearest for non-technical editing in Options UI.
+### Validation
+
+- A `urlTemplate` must contain `{variable}` to be saved.
+- At most one variable placeholder is allowed.
 
 ---
 

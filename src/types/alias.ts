@@ -2,8 +2,10 @@ export interface UrlAlias {
   id: string;
   /** Short trigger, e.g. "backend-pull" */
   trigger: string;
-  /** Destination URL or template with {{param}} placeholders */
+  /** Destination URL (bare/fallback) */
   url: string;
+  /** Optional template URL with {variable} placeholder, e.g. "https://youtube.com/results?search_query={variable}" */
+  urlTemplate?: string;
   /** Optional description shown in the palette */
   description?: string;
   /** Extra keywords for fuzzy matching */
@@ -12,9 +14,4 @@ export interface UrlAlias {
   newTab?: boolean;
   /** Whether this alias is enabled */
   enabled?: boolean;
-}
-
-export interface AliasTemplate extends UrlAlias {
-  /** Named capture groups for template params, e.g. "pr {{number}}" */
-  urlTemplate?: string;
 }
