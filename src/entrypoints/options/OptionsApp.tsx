@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Bookmark,
   Camera,
   Copy,
+  Download,
   ExternalLink,
   FileText,
   Grid3x3,
@@ -13,6 +14,7 @@ import {
   Plus,
   Ruler,
   Trash2,
+  Upload,
   Volume2,
   Wrench,
   X,
@@ -20,6 +22,7 @@ import {
 import type { TextSnippet, UrlAlias } from '@/types';
 import { getAllAliases, saveAliases } from '@/lib/storage/aliases';
 import { getAllSnippets, saveSnippets } from '@/lib/storage/snippets';
+import { createExportData, downloadExport, mergeImport, parseImportData } from '@/lib/import-export';
 import { DEV_TOOLS } from '@/data/dev-tools';
 
 import { cn } from '@/lib/cn';
@@ -333,6 +336,8 @@ export function OptionsApp() {
   });
   const [editingSnippetId, setEditingSnippetId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     Promise.all([getAllAliases(), getAllSnippets()]).then(([aliasData, snippetData]) => {
@@ -491,6 +496,51 @@ export function OptionsApp() {
     );
   };
 
+  const handleExport = () => {
+    const data = createExportData(aliases, snippets);
+    downloadExport(data);
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = parseImportData(text);
+      const { mergedAliases, mergedSnippets, result } = mergeImport(
+        aliases,
+        data.aliases,
+        snippets,
+        data.snippets,
+      );
+
+      await saveAliases(mergedAliases);
+      await saveSnippets(mergedSnippets);
+      setAliases(mergedAliases);
+      setSnippets(mergedSnippets);
+
+      const parts: string[] = [];
+      if (result.aliasesAdded) parts.push(`${result.aliasesAdded} shortcut${result.aliasesAdded !== 1 ? 's' : ''}`);
+      if (result.snippetsAdded) parts.push(`${result.snippetsAdded} snippet${result.snippetsAdded !== 1 ? 's' : ''}`);
+      const skipped = result.aliasesSkipped + result.snippetsSkipped;
+
+      let message = `Imported ${parts.join(' and ')}.`;
+      if (skipped) message += ` ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped.`;
+      setStatus({ type: 'success', message });
+      setTimeout(() => setStatus(null), 5000);
+    } catch (err) {
+      setStatus({ type: 'error', message: err instanceof Error ? err.message : 'Failed to import file' });
+      setTimeout(() => setStatus(null), 5000);
+    }
+
+    e.target.value = '';
+  };
+
   const formIsValid = form.trigger.trim() && form.url.trim()
     && (!form.variableSuffix.trim() || form.variableSuffix.includes('{variable}'));
 
@@ -553,11 +603,42 @@ export function OptionsApp() {
                   );
                 })}
               </nav>
+
+              <div className="mt-3 flex gap-1.5 lg:flex-col">
+                <button
+                  type="button"
+                  onClick={handleImportClick}
+                  className="flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-[var(--flick-muted)] transition-all duration-200 hover:bg-white/[0.06] hover:text-white lg:w-full"
+                >
+                  <Upload className="size-4" />
+                  <span>Import</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  className="flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-[var(--flick-muted)] transition-all duration-200 hover:bg-white/[0.06] hover:text-white lg:w-full"
+                >
+                  <Download className="size-4" />
+                  <span>Export</span>
+                </button>
+              </div>
             </div>
           </aside>
 
           {/* ── Main content ── */}
           <main className="min-w-0">
+            {status && (
+              <div
+                className={cn(
+                  'mb-6 flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm animate-in',
+                  status.type === 'success'
+                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                    : 'border-red-500/20 bg-red-500/10 text-red-300',
+                )}
+              >
+                {status.message}
+              </div>
+            )}
             <div className="mb-8 flex items-end justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold tracking-tight">{currentTab.label}</h2>
@@ -883,6 +964,15 @@ export function OptionsApp() {
           )}
         </Modal>
       )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleFileChange}
+        className="hidden"
+        aria-label="Import shortcuts from JSON file"
+      />
 
       <style>{`
         @keyframes fade-up {
