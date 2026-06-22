@@ -130,12 +130,29 @@ export function FlickShell({ onClose, isPopup, activeTabId }: FlickShellProps) {
     [onClose, activeTabId],
   );
 
+  const handleGoogleSearch = useCallback(() => {
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    const message: Record<string, unknown> = {
+      type: 'EXECUTE_ACTION',
+      action: { type: 'navigate', url: searchUrl },
+    };
+    if (activeTabId != null) {
+      message.tabId = activeTabId;
+    }
+    browser.runtime.sendMessage(message);
+    onClose();
+  }, [query, activeTabId, onClose]);
+
   const handleSelect = useCallback(
     (value: string) => {
+      if (value === `google-${query}`) {
+        handleGoogleSearch();
+        return;
+      }
       const item = results.find((result) => result.id === value);
       if (item) handleSendAction(item);
     },
-    [results, handleSendAction],
+    [results, handleSendAction, handleGoogleSearch, query],
   );
 
   const isDefault = query === '';
@@ -181,9 +198,31 @@ export function FlickShell({ onClose, isPopup, activeTabId }: FlickShellProps) {
             <div className="px-3 py-6 text-sm text-[var(--flick-muted)]">Loading shortcuts…</div>
           ) : (
             <>
-              <Command.Empty className="px-3 py-6 text-sm text-[var(--flick-muted)]">
-                No matching shortcuts.
-              </Command.Empty>
+              {visibleAliases.length === 0 && visibleSnippets.length === 0 && visibleDevTools.length === 0 ? (
+                query !== '' ? (
+                  <Command.Item
+                    value={`google-${query}`}
+                    onSelect={handleSelect}
+                    className={cn(
+                      'flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm',
+                      'text-[var(--flick-text)] aria-selected:bg-white/10',
+                    )}
+                  >
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/10 text-[var(--flick-accent)]">
+                      <ExternalLink className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">
+                        Search Google for &ldquo;{query}&rdquo;
+                      </span>
+                    </span>
+                  </Command.Item>
+                ) : (
+                  <Command.Empty className="px-3 py-6 text-sm text-[var(--flick-muted)]">
+                    No matching shortcuts.
+                  </Command.Empty>
+                )
+              ) : null}
 
               {visibleAliases.length > 0 && (
                 <Command.Group heading="Shortcuts">
