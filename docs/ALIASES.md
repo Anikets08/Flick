@@ -22,7 +22,7 @@ A plain alias maps a **trigger** (what you type) to a **URL** (where you go).
 
 1. Trigger match is **case-insensitive**
 2. Exact trigger match ranks highest
-3. `keywords` participate in Fuse.js fuzzy search
+3. `keywords` participate in ranked search (word and prefix matches, typo fallback)
 4. `description` is shown as subtitle in the palette
 
 ### Examples

@@ -1,4 +1,4 @@
-import Fuse from 'fuse.js';
+import { rankItems, type SearchOptions } from '@/lib/search/rank';
 import type { CommandItem } from '@/types';
 import type { UrlAlias } from '@/types';
 
@@ -45,7 +45,7 @@ function findTemplateMatch(aliases: UrlAlias[], query: string): { alias: UrlAlia
   return null;
 }
 
-export function searchAliases(aliases: UrlAlias[], query: string): CommandItem[] {
+export function searchAliases(aliases: UrlAlias[], query: string, options: SearchOptions = {}): CommandItem[] {
   const enabled = aliases.filter((alias) => alias.enabled !== false);
 
   if (!query.trim()) {
@@ -65,20 +65,15 @@ export function searchAliases(aliases: UrlAlias[], query: string): CommandItem[]
     return [aliasToCommandItem(exact)];
   }
 
-  const fuse = new Fuse(enabled, {
-    keys: [
-      { name: 'trigger', weight: 0.5 },
-      { name: 'description', weight: 0.25 },
-      { name: 'keywords', weight: 0.25 },
-      { name: 'url', weight: 0.1 },
+  return rankItems(
+    enabled,
+    query,
+    (alias) => [
+      { value: alias.trigger, weight: 1 },
+      { value: alias.keywords, weight: 0.85 },
+      { value: alias.description, weight: 0.75 },
+      { value: alias.url, weight: 0.5, substring: true },
     ],
-    threshold: 0.35,
-    includeScore: true,
-    ignoreLocation: true,
-  });
-
-  return fuse.search(query.trim()).map((result) => ({
-    ...aliasToCommandItem(result.item),
-    score: result.score,
-  }));
+    options,
+  ).map(({ item, score }) => ({ ...aliasToCommandItem(item), score }));
 }

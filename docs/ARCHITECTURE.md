@@ -28,7 +28,7 @@ flowchart TB
     subgraph Extension
         BG[Background service worker]
         CS[Flick content script]
-        UI[React + cmdk overlay]
+        UI[Preact palette overlay]
         OPT[Options page]
         STORE[(chrome.storage.sync)]
     end
@@ -109,10 +109,10 @@ User query
  Merge + dedupe by URL/tabId
     │
     ▼
- Fuse.js re-rank by query (if non-empty)
+ Rank by query (src/lib/search/rank.ts)
     │
     ▼
- CommandItem[] → cmdk list
+ CommandItem[] → grouped listbox
 ```
 
 Each provider returns `CommandItem[]`. Empty query shows **recents + utilities + top aliases**.
@@ -189,12 +189,12 @@ Z-index: `2147483647` (max practical) so overlay sits above page modals.
 ```
 src/
 ├── components/
-│   ├── FlickShell.tsx          # Root overlay + cmdk
+│   ├── FlickShell.tsx          # Root overlay + result list
 │   ├── CommandList.tsx
 │   └── CommandItemRow.tsx
 ├── lib/
 │   ├── search/
-│   │   ├── fuse-config.ts
+│   │   ├── rank.ts
 │   │   ├── merge-results.ts
 │   │   └── providers/
 │   │       ├── alias-provider.ts

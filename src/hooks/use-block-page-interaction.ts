@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'preact/hooks';
 
 function getFlickHost(): HTMLElement | null {
   for (const child of document.body.children) {
@@ -38,7 +38,10 @@ function isBrowserShortcut(event: KeyboardEvent): boolean {
  * can still use Cmd+L, Cmd+T, Cmd+W, etc. while the palette is open.
  */
 export function useBlockPageInteraction(active: boolean) {
-  useEffect(() => {
+  // Layout effect so the page is released in the same task the palette
+  // closes — Preact defers plain effects to the next frame, which would leave
+  // the page inert and its keys blocked for a moment after closing.
+  useLayoutEffect(() => {
     if (!active) return;
 
     const host = getFlickHost();

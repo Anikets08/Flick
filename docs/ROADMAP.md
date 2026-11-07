@@ -58,12 +58,12 @@ Phased plan for Flick. Each phase is shippable on its own.
 
 **Goal:** Flick becomes a real navigation hub.
 
-- [ ] **Tab provider** — fuzzy search open tabs, switch on select
-- [ ] **Bookmark provider** — `bookmarks.search`
-- [ ] **History provider** — debounced `history.search`
-- [ ] Grouped results in cmdk (Aliases | Tabs | Bookmarks | History)
+- [x] **Tab provider** — fuzzy search open tabs, switch on select
+- [x] **Bookmark provider** — `bookmarks.search`
+- [x] **History provider** — debounced `history.search` (optional permission, toggled in Settings → Features)
+- [x] Grouped results in cmdk (Aliases | Tabs | Bookmarks | History)
 - [ ] Empty state hints ("Try backend-pull or a tab name")
-- [ ] Recent commands — store last 10 navigations
+- [x] Recent commands — store last 10 navigations
 
 ---
 
@@ -72,7 +72,7 @@ Phased plan for Flick. Each phase is shippable on its own.
 **Goal:** Power-user features and production quality.
 
 - [x] **URL templates** — `pr 123` → `.../pull/123` (see [ALIASES.md](./ALIASES.md))
-- [ ] Alias import/export (JSON)
+- [x] Alias import/export (JSON)
 - [ ] Custom shortcut per alias (optional)
 - [ ] Light/dark theme toggle for the palette
 - [ ] Extension icons (16–128px) — refined set
@@ -100,3 +100,5 @@ Phased plan for Flick. Each phase is shippable on its own.
 | 2026-06-15 | No popup entrypoint | Palette is primary UI |
 | 2026-06-19 | Shadow DOM guard content script | Block host-page shortcuts at document_start |
 | 2026-06-20 | Modal-based forms in settings | Cleaner UX than inline forms |
+| 2026-11-07 | Preact instead of React; own list instead of cmdk; own ranker instead of Fuse.js; drop tailwind-merge | Palette JS 141 KB → ~56 KB. Palette stays mounted between opens (~5 ms reopen) |
+| 2026-11-07 | Palette injected on demand, CSS inlined | Pages that never open Flick only load the 4 KB keyboard guard |

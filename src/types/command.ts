@@ -10,7 +10,7 @@ export type CommandCategory =
 
 export type CommandAction =
   | { type: 'navigate'; url: string; newTab?: boolean }
-  | { type: 'switch-tab'; tabId: number }
+  | { type: 'switch-tab'; tabId: number; windowId?: number }
   | { type: 'close-tab'; tabId: number }
   | { type: 'screenshot'; mode: 'current-tab' | 'select-element' }
   | { type: 'copy'; value: 'url' | 'title' | 'markdown-link' }

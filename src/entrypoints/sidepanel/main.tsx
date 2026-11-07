@@ -1,10 +1,6 @@
+/** @jsxImportSource preact */
 import '@/assets/styles/globals.css';
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { render } from 'preact';
 import { SidepanelApp } from './SidepanelApp';
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <SidepanelApp />
-  </StrictMode>,
-);
+render(<SidepanelApp />, document.getElementById('root')!);

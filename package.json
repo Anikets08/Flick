@@ -27,24 +27,22 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "test:e2e": "wxt build && playwright test"
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
-    "fuse.js": "^7.1.0",
+    "lucide-preact": "^0.525.0",
     "lucide-react": "^0.525.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "tailwind-merge": "^3.3.1",
-    "zustand": "^5.0.6"
+    "preact": "^10.29.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@preact/preset-vite": "^2.10.6",
     "@tailwindcss/vite": "^4.1.11",
     "@types/chrome": "^0.1.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@wxt-dev/module-react": "^1.1.5",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.9.3",
     "wxt": "^0.20.26"

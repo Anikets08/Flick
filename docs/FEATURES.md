@@ -18,7 +18,7 @@ Customizable shortcuts that navigate to a URL. Managed from the **Settings** pag
 
 Aliases support:
 - **Exact trigger match** (highest priority)
-- **Fuzzy search** on trigger, description, keywords, URL (via Fuse.js)
+- **Ranked search** on trigger, description, keywords, URL, with typo tolerance
 - **Open in current tab** or **new tab**
 - **Enable/disable** without deleting
 - **Sync across devices** via `chrome.storage.sync`
@@ -52,7 +52,7 @@ Built-in commands that run directly on the active tab. Search by name or keyword
 |----------------|--------|-------------|
 | `ss`, `screenshot`, `capture`, `snapshot` | **Screenshot** | Captures the visible viewport and saves to `~/Downloads/screenshot-<timestamp>.png` |
 | `color`, `pick`, `eyedropper`, `pipette`, `cp` | **Color Picker** | Pick a color from anywhere on the page — hover for live preview, click to copy hex to clipboard |
-| `dark`, `night`, `theme`, `invert`, `dm` | **Toggle Dark Mode** | Inverts page colors (CSS filter) — run again to revert |
+| `dark`, `light`, `night`, `theme`, `invert`, `dm` | **Toggle Dark Mode** | Inverts page colors (CSS filter) — run again to revert |
 | `grid`, `layout`, `columns`, `design`, `g` | **Toggle Column Grid** | Overlays a 12-column responsive grid on the page — run again to hide |
 | `ruler`, `measure`, `pixel`, `px`, `r` | **Toggle Pixel Rulers** | Shows pixel rulers along the top and left edges — run again to hide |
 
@@ -72,12 +72,13 @@ Built-in commands that run directly on the active tab. Search by name or keyword
 | `bookmark`, `save`, `favorite`, `star` | **Bookmark Page** | Saves the current page to Chrome bookmarks |
 | `copy`, `markdown`, `md`, `link` | **Copy as Markdown Link** | Copies `[page title](url)` to the clipboard |
 | `copy`, `url`, `address` | **Copy URL** | Copies the current page URL to the clipboard |
+| `copy title`, `title` | **Copy Page Title** | Copies the page title to the clipboard |
 
 ### Cache & Storage
 
 | Search Keywords | Action | What it does |
 |----------------|--------|-------------|
-| `cache`, `clear`, `refresh`, `cc` | **Clear Cache** | Removes all cached files, then reloads the page |
+| `cache`, `clear`, `refresh`, `cc` | **Clear Cache** | Clears the current site's cached files, then hard-reloads the page |
 
 ---
 

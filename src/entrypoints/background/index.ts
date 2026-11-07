@@ -1,4 +1,6 @@
-import { executeAction } from '@/lib/actions/execute-action';
+import { executeAction, showToast } from '@/lib/actions/execute-action';
+import { listTabs, searchBrowser } from '@/lib/search/browser-search';
+import { getAllAliases, saveAliases } from '@/lib/storage/aliases';
 import { isRestrictedTabUrl, openFlickOnActiveTab, openFlickSidePanel } from '@/lib/open-flick';
 import type { CommandAction } from '@/types';
 
@@ -51,7 +53,7 @@ export default defineBackground(() => {
       // Auto-close the side panel when the tracked tab navigates to a
       // normal http(s) page — the content-script overlay takes over there.
       if (sidePanelTabId === tabId && /^https?:\/\//.test(info.url)) {
-        chrome.sidePanel.setOptions({ tabId, enabled: false });
+        chrome.sidePanel.setOptions({ tabId, enabled: false }).catch(() => {});
         sidePanelTabId = undefined;
       }
     }
@@ -75,7 +77,9 @@ export default defineBackground(() => {
         // Cache not ready yet (first press after service-worker startup).
         // Open for the current window — the side panel will query the
         // active tab itself via tabs.query().
-        chrome.sidePanel.open({ windowId: chrome.windows.WINDOW_ID_CURRENT });
+        chrome.sidePanel
+          .open({ windowId: chrome.windows.WINDOW_ID_CURRENT })
+          .catch((error) => console.warn('[Flick] Side panel open failed:', error));
       }
       return;
     }
@@ -90,54 +94,69 @@ export default defineBackground(() => {
     void browser.runtime.openOptionsPage();
   });
 
-  browser.runtime.onMessage.addListener(async (message, sender) => {
-    if (message?.type === 'EXECUTE_ACTION') {
-      const action = message.action as CommandAction;
-      const tabId = message.tabId ?? sender.tab?.id;
-      void executeAction(action, tabId);
-      return true;
-    }
+  const handleMessage = async (
+    message: any,
+    sender: Browser.runtime.MessageSender,
+  ): Promise<unknown> => {
+    switch (message?.type) {
+      case 'EXECUTE_ACTION': {
+        const action = message.action as CommandAction;
+        const tabId = message.tabId ?? sender.tab?.id;
+        void executeAction(action, tabId);
+        return true;
+      }
 
-    if (message?.type === 'CAPTURE_ELEMENT') {
-      if (!sender.tab?.id) return false;
-      const tab = await browser.tabs.get(sender.tab.id);
-      const dataUrl = await browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
-      return dataUrl;
-    }
+      case 'LIST_TABS':
+        return listTabs(message.excludeTabId ?? sender.tab?.id);
 
-    if (message?.type === 'DOWNLOAD_ELEMENT') {
-      const timestamp = Date.now();
-      await browser.downloads.download({
-        url: message.dataUrl,
-        filename: `element-screenshot-${timestamp}.png`,
-        saveAs: false,
-      });
-      return true;
-    }
+      case 'SEARCH_BROWSER':
+        return searchBrowser(message.query as string);
 
-    if (message?.type === 'SHOW_TOAST') {
-      if (!sender.tab?.id) return false;
-      const { showToast } = await import('@/lib/actions/execute-action');
-      void showToast(sender.tab.id, message.message as string);
-      return false;
-    }
+      case 'CAPTURE_ELEMENT': {
+        if (!sender.tab?.id) return undefined;
+        const tab = await browser.tabs.get(sender.tab.id);
+        return browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+      }
 
-    if (message?.type === 'OPEN_OPTIONS') {
-      void browser.runtime.openOptionsPage();
-      return false;
-    }
+      case 'DOWNLOAD_ELEMENT': {
+        const timestamp = Date.now();
+        await browser.downloads.download({
+          url: message.dataUrl,
+          filename: `element-screenshot-${timestamp}.png`,
+          saveAs: false,
+        });
+        return true;
+      }
 
-    return false;
+      case 'SHOW_TOAST':
+        if (sender.tab?.id) void showToast(sender.tab.id, message.message as string);
+        return undefined;
+
+      case 'OPEN_OPTIONS':
+        void browser.runtime.openOptionsPage();
+        return undefined;
+
+      default:
+        return undefined;
+    }
+  };
+
+  // Reply via sendResponse + `return true` rather than returning a promise —
+  // promise-returning listeners aren't supported on every Chrome version.
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    handleMessage(message, sender).then(sendResponse, (error) => {
+      console.error('[Flick]', error);
+      sendResponse(undefined);
+    });
+    return true;
   });
 
   browser.runtime.onInstalled.addListener(async ({ reason }) => {
     if (reason !== 'install') return;
 
-    const result = await browser.storage.sync.get<Record<string, unknown>>('aliases');
-    const stored = result.aliases;
-    if (!Array.isArray(stored) || !stored.length) {
-      const { DEFAULT_ALIASES } = await import('@/data/default-aliases');
-      await browser.storage.sync.set({ aliases: DEFAULT_ALIASES });
-    }
+    // Sync storage may already hold shortcuts from another device.
+    if ((await getAllAliases()).length) return;
+    const { DEFAULT_ALIASES } = await import('@/data/default-aliases');
+    await saveAliases(DEFAULT_ALIASES);
   });
 });
