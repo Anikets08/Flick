@@ -1,0 +1,39 @@
+/* Shared by the extension pages (globals.css) and the on-page palette (palette.css). */
+@theme {
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* :host covers the palette's shadow root, where :root doesn't match. */
+:root,
+:host {
+  --flick-bg: oklch(0.14 0.01 260);
+  --flick-border: oklch(0.25 0.01 260 / 0.6);
+  --flick-text: oklch(0.96 0 0);
+  --flick-muted: oklch(0.58 0.015 260);
+  --flick-accent: oklch(0.65 0.2 250);
+  --flick-surface: oklch(0.17 0.008 260);
+  --flick-hover: oklch(0.21 0.01 260);
+}
+
+::selection {
+  background: var(--flick-accent);
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.3 0.01 260 / 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.4 0.01 260 / 0.6);
+}

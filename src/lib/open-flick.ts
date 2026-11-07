@@ -51,7 +51,15 @@ export async function toggleFlickOnTab(tabId: number): Promise<void> {
  * propagation.
  */
 export function openFlickSidePanel(tabId: number): void {
-  chrome.sidePanel.open({ tabId });
+  // The panel is disabled per-tab when the tab navigates back to a normal page
+  // (see background), so re-enable it first. Not awaited — calls are processed
+  // in order, and awaiting would drop the user gesture.
+  chrome.sidePanel
+    .setOptions({ tabId, path: 'sidepanel.html', enabled: true })
+    .catch((error) => console.warn('[Flick] Side panel setOptions failed:', error));
+  chrome.sidePanel
+    .open({ tabId })
+    .catch((error) => console.warn('[Flick] Side panel open failed:', error));
 }
 
 export async function openFlickOnActiveTab(): Promise<{ ok: true } | { ok: false; reason: string }> {

@@ -1,11 +1,10 @@
 import type { UrlAlias } from '@/types';
+import { createSyncCollection } from './sync-collection';
 
-const ALIASES_KEY = 'aliases';
+const aliasStore = createSyncCollection<UrlAlias>({ prefix: 'alias', legacyKey: 'aliases' });
 
 export async function getAllAliases(): Promise<UrlAlias[]> {
-  const { aliases } = await browser.storage.sync.get(ALIASES_KEY);
-  const stored = aliases as UrlAlias[] | undefined;
-  return stored ?? [];
+  return aliasStore.getAll();
 }
 
 export async function getAliases(): Promise<UrlAlias[]> {
@@ -14,5 +13,5 @@ export async function getAliases(): Promise<UrlAlias[]> {
 }
 
 export async function saveAliases(aliases: UrlAlias[]): Promise<void> {
-  await browser.storage.sync.set({ [ALIASES_KEY]: aliases });
+  await aliasStore.saveAll(aliases);
 }

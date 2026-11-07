@@ -1,0 +1,32 @@
+/*
+ * The on-page palette, loaded into its shadow root as an inline string.
+ * Tailwind only scans the palette's own components, so classes used by the
+ * Settings page don't end up in every tab.
+ */
+@import 'tailwindcss' source(none);
+@source '../../components/FlickShell.tsx';
+@import './theme.css';
+
+:host([data-flick-host]) body {
+  margin: 0;
+  background: transparent;
+}
+
+#flick-root {
+  all: initial;
+  font-family: var(--font-sans);
+  color: var(--flick-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Host pages like YouTube set a small root font-size (e.g. 10px), which shrinks
+ * any UI inside a shadow root because `rem` units still resolve against the
+ * document root. Normalize by scaling the shadow root's internal <html> so the
+ * UI always renders as if the root font-size were 16px.
+ */
+:host([data-flick-host]) html {
+  width: calc(100vw / var(--flick-scale, 1));
+  height: calc(100vh / var(--flick-scale, 1));
+  zoom: var(--flick-scale, 1);
+}

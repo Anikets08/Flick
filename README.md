@@ -29,7 +29,7 @@ Flick brings the speed of macOS Spotlight to your browser. Instead of reaching f
 | `cp` | Picks a color from anywhere on the page |
 | `dark` | Toggles dark mode on the page |
 | `grid` | Overlays a 12-column design grid |
-| `cache` | Clears cache and reloads the page |
+| `cache` | Clears the current site's cache and hard-reloads |
 | `yt tony stark` | Searches YouTube for "tony stark" |
 
 Everything is configurable from a polished settings page — add your own shortcuts, snippets, and toggle built-in tools on or off.
@@ -43,7 +43,7 @@ Everything is configurable from a polished settings page — add your own shortc
 Custom triggers that navigate to any URL. Managed from the **Settings** page or added via **quick-add chips** right inside the palette.
 
 - Case-insensitive trigger matching (exact match ranks highest)
-- Fuzzy search across trigger, description, keywords, and URL (powered by Fuse.js)
+- Ranked search across trigger, description, keywords, and URL, with typo tolerance
 - Open in current tab or new tab
 - Enable/disable without deleting
 - Synced across devices via `chrome.storage.sync`
@@ -80,13 +80,13 @@ Thirteen built-in commands that run directly on the active tab. Search by name o
 |---|---|
 | **Capture & Visual** | Screenshot (viewport / select element), Color picker, Toggle dark mode, Toggle column grid, Toggle pixel rulers |
 | **Tab Management** | Duplicate tab, Toggle pin, Toggle mute, Move to new window |
-| **Page Actions** | Bookmark page, Copy URL, Copy as Markdown link |
-| **Cache & Storage** | Clear cache + reload |
+| **Page Actions** | Bookmark page, Copy URL, Copy page title, Copy as Markdown link |
+| **Cache & Storage** | Clear the current site's cache + hard reload |
 
 ### Design & UX
 
 - **Shadow DOM isolation** — the palette renders in a closed shadow root, immune to host-page CSS
-- **Keyboard-first** — full `cmdk` navigation with `↑`/`↓`, `Enter`, `Esc`
+- **Keyboard-first** — `↑`/`↓` (or `Ctrl+N`/`Ctrl+P`), `Enter`, `Esc`
 - **Page interaction guard** — while the palette is open, keyboard events are captured so host-page shortcuts (e.g. GitHub's `/`) never fire
 - **Restricted-page detection** — gracefully handles `chrome://`, Web Store, and other blocked URLs
 - **Toast feedback** — every action confirms with a lightweight toast
@@ -162,11 +162,12 @@ Open the settings page from the palette footer (**Settings** button) or by click
 | Layer | Choice | Why |
 |---|---|---|
 | Extension framework | [WXT](https://wxt.dev) | Vite-native, file-based entrypoints, cross-browser, excellent DX |
-| UI | React 19 + TypeScript | Strong ecosystem, type safety, matches modern standards |
+| UI | React-style components on [Preact](https://preactjs.com) (`preact/compat`) + TypeScript | React API and ecosystem at ~1/10 the runtime size |
 | Styling | Tailwind CSS 4 | Utility-first, fast iteration, scoped via Shadow DOM |
-| Command palette | [cmdk](https://cmdk.paco.me) | Accessible, keyboard-first, battle-tested |
-| Fuzzy search | [Fuse.js](https://fusejs.io) | Lightweight, typo-tolerant, ideal for palette-scale datasets |
-| State | Zustand | Minimal, works well in extensions |
+| Command palette | Own ARIA combobox/listbox | Keyboard-first, accessible, a fraction of the size of a library |
+| Search | Built-in ranker (`src/lib/search/rank.ts`) | Word/prefix ranking + typo fallback, no dependency |
+| State | React hooks + `chrome.storage` | No extra library needed at this size |
+| Testing | [Playwright](https://playwright.dev) | Loads the built extension in Chromium for end-to-end tests |
 | Icons | Lucide React | Consistent, tree-shakeable |
 
 ---
@@ -189,7 +190,7 @@ flick/
 │   ├── hooks/                     # Search & interaction hooks
 │   ├── lib/
 │   │   ├── actions/               # Action execution (screenshot, copy, etc.)
-│   │   ├── search/                # Fuse.js providers (aliases, snippets, tools)
+│   │   ├── search/                # Ranker + providers (aliases, snippets, tools, tabs, browser)
 │   │   ├── storage/               # chrome.storage wrappers
 │   │   └── open-flick.ts          # Shortcut → active tab logic
 │   └── types/                     # Shared TypeScript types
@@ -209,9 +210,9 @@ Background service worker
         │  injects + sends FLICK_TOGGLE
         ▼
 Flick content script (Shadow DOM)
-        │  mounts React + cmdk overlay
+        │  mounts the Preact palette once, then shows/hides it
         ▼
-User types → Fuse.js search
+User types → ranked search (src/lib/search/rank.ts)
   ├── Alias provider    (chrome.storage.sync)
   ├── Snippet provider  (chrome.storage.sync)
   └── Dev tool provider (static registry)
@@ -277,10 +278,10 @@ For the full guide, see [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md).
 ### Done
 
 - [x] WXT + React 19 + TypeScript + Tailwind 4 scaffold
-- [x] Shadow DOM–isolated palette with `cmdk`
-- [x] URL aliases with Fuse.js fuzzy search
+- [x] Shadow DOM–isolated palette (Preact, ~56 KB JS, injected on first use)
+- [x] URL aliases with ranked, typo-tolerant search
 - [x] Text snippets with clipboard paste
-- [x] 14 built-in developer tools (screenshot, color picker, dark mode, grid, rulers, tab management, copy, bookmark, clear cache)
+- [x] 15 built-in tools (screenshot, color picker, dark mode, grid, rulers, tab management, copy, bookmark, clear cache)
 - [x] Element-selection screenshot mode
 - [x] Settings page with sidebar nav, modal forms, sticky positioning
 - [x] URL templates with `{variable}` placeholder (`yt tony stark` → YouTube search)

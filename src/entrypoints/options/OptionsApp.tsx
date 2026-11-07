@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AppWindow,
   Bookmark,
   Camera,
   Copy,
@@ -7,10 +8,12 @@ import {
   ExternalLink,
   FileText,
   Grid3x3,
+  History,
   Link2,
   Maximize2,
   Moon,
   Pin,
+  Pipette,
   Plus,
   Ruler,
   Trash2,
@@ -24,6 +27,7 @@ import { getAllAliases, saveAliases } from '@/lib/storage/aliases';
 import { getAllSnippets, saveSnippets } from '@/lib/storage/snippets';
 import { createExportData, downloadExport, mergeImport, parseImportData } from '@/lib/import-export';
 import { DEV_TOOLS } from '@/data/dev-tools';
+import { hasHistoryPermission } from '@/lib/search/browser-search';
 
 import { cn } from '@/lib/cn';
 
@@ -58,10 +62,19 @@ function parseKeywords(value: string): string[] {
     .filter(Boolean);
 }
 
+function storageErrorMessage(err: unknown, fallback = 'Failed to save changes'): string {
+  const message = err instanceof Error ? err.message : '';
+  // Chrome has worded this as both QUOTA_BYTES_PER_ITEM and kQuotaBytesPerItem.
+  if (/quota/i.test(message)) {
+    return 'Not saved: Chrome sync storage is full. Remove or shorten some shortcuts or snippets.';
+  }
+  return message || fallback;
+}
+
 const FEATURE_GROUPS: { label: string; ids: string[] }[] = [
   {
     label: 'Capture & Visual',
-    ids: ['dev-screenshot', 'dev-dark-mode', 'dev-show-grid', 'dev-show-rulers'],
+    ids: ['dev-screenshot', 'dev-screenshot-element', 'dev-color-picker', 'dev-dark-mode', 'dev-show-grid', 'dev-show-rulers'],
   },
   {
     label: 'Tab Management',
@@ -69,7 +82,7 @@ const FEATURE_GROUPS: { label: string; ids: string[] }[] = [
   },
   {
     label: 'Page Actions',
-    ids: ['dev-bookmark', 'dev-copy-markdown', 'dev-copy-url'],
+    ids: ['dev-bookmark', 'dev-copy-markdown', 'dev-copy-url', 'dev-copy-title'],
   },
   {
     label: 'Cache & Storage',
@@ -80,6 +93,7 @@ const FEATURE_GROUPS: { label: string; ids: string[] }[] = [
 const devToolIcon = (type: string) => {
   switch (type) {
     case 'screenshot': return <Camera className="size-4" />;
+    case 'color-picker': return <Pipette className="size-4" />;
     case 'toggle-dark-mode': return <Moon className="size-4" />;
     case 'clear-cache': return <Trash2 className="size-4" />;
     case 'show-grid': return <Grid3x3 className="size-4" />;
@@ -94,12 +108,13 @@ const devToolIcon = (type: string) => {
   }
 };
 
-function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void }) {
+function Toggle({ enabled, onChange, label }: { enabled: boolean; onChange: () => void; label?: string }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={enabled}
+      aria-label={label}
       onClick={onChange}
       className={cn(
         'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-all duration-300',
@@ -273,12 +288,85 @@ function Modal({
   );
 }
 
+function FeatureCard({
+  icon,
+  title,
+  description,
+  action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="group flex items-start gap-4 rounded-xl border border-[var(--flick-border)] bg-[var(--flick-surface)]/50 p-4 transition-all duration-200 hover:border-[var(--flick-accent)]/20 hover:bg-[var(--flick-hover)]/60">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-b from-white/[0.09] to-white/[0.02] text-[var(--flick-accent)] ring-1 ring-white/[0.06] transition-all duration-200 group-hover:from-[var(--flick-accent)]/20 group-hover:to-[var(--flick-accent)]/5 group-hover:ring-[var(--flick-accent)]/25">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium">{title}</div>
+        <div className="mt-0.5 text-sm leading-relaxed text-[var(--flick-muted)]">{description}</div>
+      </div>
+      {action ? <div className="shrink-0 self-center">{action}</div> : null}
+    </div>
+  );
+}
+
+function BrowserSearchSection() {
+  const [historyEnabled, setHistoryEnabled] = useState(false);
+
+  useEffect(() => {
+    void hasHistoryPermission().then(setHistoryEnabled);
+  }, []);
+
+  // permissions.request() must run directly inside the click handler — Chrome
+  // rejects it without a user gesture.
+  const toggleHistory = async () => {
+    try {
+      if (historyEnabled) {
+        await browser.permissions.remove({ permissions: ['history'] });
+        setHistoryEnabled(false);
+      } else {
+        setHistoryEnabled(await browser.permissions.request({ permissions: ['history'] }));
+      }
+    } catch {
+      setHistoryEnabled(await hasHistoryPermission());
+    }
+  };
+
+  return (
+    <section>
+      <SectionHeading>Browser Search</SectionHeading>
+      <div className="grid gap-2.5">
+        <FeatureCard
+          icon={<AppWindow className="size-4" />}
+          title="Open Tabs"
+          description="Type part of a tab's title or URL to jump to it, across all windows."
+        />
+        <FeatureCard
+          icon={<Bookmark className="size-4" />}
+          title="Bookmarks"
+          description="Matching bookmarks appear below your shortcuts."
+        />
+        <FeatureCard
+          icon={<History className="size-4" />}
+          title="History"
+          description="Search pages you've visited. Chrome asks for permission to read your history when you turn this on."
+          action={<Toggle enabled={historyEnabled} onChange={() => void toggleHistory()} label="Search history" />}
+        />
+      </div>
+    </section>
+  );
+}
+
 function FeaturesTab() {
   return (
     <div className="animate-in space-y-10">
       <p className="max-w-prose text-sm leading-relaxed text-[var(--flick-muted)]">
         Built-in commands available from the Flick palette. Type any keyword to find them — no setup required.
       </p>
+      <BrowserSearchSection />
       {FEATURE_GROUPS.map((group) => {
         const items = DEV_TOOLS.filter((t) => group.ids.includes(t.id));
         if (!items.length) return null;
@@ -348,9 +436,16 @@ export function OptionsApp() {
   }, []);
 
   const persist = useCallback(async (next: UrlAlias[]) => {
+    const previous = aliases;
     setAliases(next);
-    await saveAliases(next);
-  }, []);
+    try {
+      await saveAliases(next);
+    } catch (err) {
+      setAliases(previous);
+      setStatus({ type: 'error', message: storageErrorMessage(err) });
+      setTimeout(() => setStatus(null), 5000);
+    }
+  }, [aliases]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -438,9 +533,16 @@ export function OptionsApp() {
   };
 
   const persistSnippets = useCallback(async (next: TextSnippet[]) => {
+    const previous = snippets;
     setSnippets(next);
-    await saveSnippets(next);
-  }, []);
+    try {
+      await saveSnippets(next);
+    } catch (err) {
+      setSnippets(previous);
+      setStatus({ type: 'error', message: storageErrorMessage(err) });
+      setTimeout(() => setStatus(null), 5000);
+    }
+  }, [snippets]);
 
   const resetSnippetForm = () => {
     setSnippetForm({ trigger: '', text: '', label: '', keywords: '' });
@@ -534,7 +636,7 @@ export function OptionsApp() {
       setStatus({ type: 'success', message });
       setTimeout(() => setStatus(null), 5000);
     } catch (err) {
-      setStatus({ type: 'error', message: err instanceof Error ? err.message : 'Failed to import file' });
+      setStatus({ type: 'error', message: storageErrorMessage(err, 'Failed to import file') });
       setTimeout(() => setStatus(null), 5000);
     }
 
@@ -722,6 +824,7 @@ export function OptionsApp() {
                             <Toggle
                               enabled={alias.enabled ?? true}
                               onChange={() => toggleEnabled(alias.id)}
+                              label={`Enable ${alias.trigger}`}
                             />
                             <button
                               onClick={() => startEdit(alias)}
@@ -731,6 +834,7 @@ export function OptionsApp() {
                             </button>
                             <button
                               onClick={() => remove(alias.id)}
+                              aria-label={`Delete ${alias.trigger}`}
                               className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--flick-muted)] transition-colors hover:text-red-400"
                             >
                               <Trash2 className="size-3.5" />
@@ -808,6 +912,7 @@ export function OptionsApp() {
                             <Toggle
                               enabled={snippet.enabled ?? true}
                               onChange={() => toggleSnippetEnabled(snippet.id)}
+                              label={`Enable ${snippet.trigger}`}
                             />
                             <button
                               onClick={() => startEditSnippet(snippet)}
@@ -817,6 +922,7 @@ export function OptionsApp() {
                             </button>
                             <button
                               onClick={() => removeSnippet(snippet.id)}
+                              aria-label={`Delete ${snippet.trigger}`}
                               className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--flick-muted)] transition-colors hover:text-red-400"
                             >
                               <Trash2 className="size-3.5" />
@@ -927,6 +1033,7 @@ export function OptionsApp() {
                 <Toggle
                   enabled={form.newTab ?? true}
                   onChange={() => setForm({ ...form, newTab: !form.newTab })}
+                  label="Open in new tab"
                 />
               </div>
             </>

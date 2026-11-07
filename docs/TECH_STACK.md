@@ -4,7 +4,7 @@ Research date: June 2026. This document records why we chose each piece and what
 
 ## Summary
 
-**Flick** is built with **WXT + React 19 + TypeScript + Tailwind CSS 4**, using **cmdk** for the palette UI and **Fuse.js** for fuzzy search. This matches modern extension best practices and aligns with your existing Keevo extension patterns.
+**Flick** is built with **WXT + Preact + TypeScript + Tailwind CSS 4**. The on-page palette is plain Preact with a hand-rolled, ARIA-compliant result list and a small built-in ranker; the Settings page uses React-style components via `preact/compat`. The palette ships as ~56 KB of JS + ~12 KB of CSS, injected only when first opened on a tab.
 
 ---
 
@@ -32,15 +32,16 @@ Research date: June 2026. This document records why we chose each piece and what
 
 Keevo uses `@crxjs/vite-plugin` successfully. CRXJS is a Vite plugin, not a full framework — you maintain manifest wiring, entrypoint discovery, and messaging patterns yourself. For a **greenfield** project where we want file-based routing and integrated content-script UI, WXT is the better starting point.
 
-We can still borrow patterns from Keevo: `cmdk`, `fuse.js`, Radix/shadcn if we add them later.
+We can still borrow patterns from Keevo (Radix/shadcn) for Settings if needed — keep them out of the palette bundle.
 
 ---
 
 ## UI: React 19 + TypeScript
 
-- **React 19** — WXT's official React module (`@wxt-dev/module-react`) targets React 19
+- **Preact (`preact/compat`)** — Components are written against the React API, but the build aliases `react`/`react-dom` to Preact via `@preact/preset-vite`. This cuts the palette bundle roughly in half. Stay on Preact 10: Preact 11 skipped effect cleanups on unmount in testing, which left the host page locked after closing the palette.
 - **TypeScript strict** — Catches manifest/API mismatches early
-- **cmdk** — Battle-tested command palette; keyboard navigation, grouping, accessibility built in
+- **Own result list** (`FlickShell.tsx`) — combobox + listbox ARIA pattern with ↑/↓, Ctrl+N/P/J/K, Enter, Esc. Replaced cmdk (~36 KB with its Radix dialog dependencies), which we'd reduced to keyboard handling since filtering and grouping were already ours.
+- **Palette is plain Preact** (`lucide-preact` icons, `preact/hooks`); only Settings goes through `preact/compat`.
 - **Lucide React** — Icons for command categories (tab, bookmark, utility, etc.)
 
 ### Future: shadcn/ui
@@ -57,37 +58,23 @@ Optional for Phase 2+. Keevo uses Radix + shadcn; we can add the same for Option
 
 ---
 
-## Search: Fuse.js
+## Search: built-in ranker (`src/lib/search/rank.ts`)
 
-Fuse.js provides fuzzy matching across:
+One ranking for shortcuts, snippets, tools, and open tabs:
 
-- Alias triggers and keywords
-- Open tab titles and URLs
-- Bookmark titles and URLs
-- History entries (debounced)
+- Each query word must match a whole word or word prefix in a weighted field (name > keywords > description). Mid-word matches are opt-in per field (URLs, tab titles), so "sig" doesn't hit "design".
+- A typo fallback (edit distance ≤ 1, or ≤ 2 for 8+ letters) runs only when **no group** has a direct match — run per group, it let fuzzy junk in one group outrank a real match in another.
+- Bookmarks and history use Chrome's own search (`bookmarks.search`, `history.search`).
 
-Alternatives considered:
-
-| Library | Notes |
-|---|---|
-| FlexSearch | Faster at scale, more setup |
-| MiniSearch | Good for full-text, less ideal for short triggers |
-| Native `includes()` | Too brittle for typo-tolerant search |
-
-Fuse.js is already proven in Keevo and sufficient for palette-scale datasets (< few thousand items per query).
+Replaced Fuse.js (~26 KB): it became just the typo fallback, which 40 lines of edit distance covers. Relevance is pinned by `e2e/search.spec.ts`. Revisit (FlexSearch/MiniSearch) only if a single search ever spans thousands of items.
 
 ---
 
-## State: Zustand
+## State: hooks + chrome.storage
 
-Lightweight store for:
+Palette state (query, results, recents) lives in component hooks; shortcuts and snippets in `chrome.storage.sync`, recents in `chrome.storage.local`. No state library needed.
 
-- Palette open/closed
-- Query string
-- Merged command results
-- Recent commands
-
-Avoid storing state in the background service worker — MV3 workers are terminated after ~30s idle. Persist recents and aliases in `chrome.storage.sync`.
+Avoid storing state in the background service worker — MV3 workers are terminated after ~30s idle.
 
 ---
 

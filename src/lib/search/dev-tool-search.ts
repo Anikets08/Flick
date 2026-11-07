@@ -1,20 +1,19 @@
 import { DEV_TOOLS } from '@/data/dev-tools';
+import { rankItems, type SearchOptions } from '@/lib/search/rank';
 import type { CommandItem } from '@/types';
 
-export function searchDevTools(query: string): CommandItem[] {
-  const trimmed = query.trim().toLowerCase();
-  if (!trimmed) return DEV_TOOLS;
+export function searchDevTools(query: string, options: SearchOptions = {}): CommandItem[] {
+  if (!query.trim()) return DEV_TOOLS;
 
-  const tokens = trimmed.split(/\s+/);
-
-  return DEV_TOOLS.filter((tool) => {
-    const searchable = [
-      tool.title.toLowerCase(),
-      tool.subtitle?.toLowerCase() ?? '',
-      ...(tool.keywords ?? []).map((k) => k.toLowerCase()),
-      tool.id.toLowerCase(),
-    ].join(' ');
-
-    return tokens.every((token) => searchable.includes(token));
-  });
+  return rankItems(
+    DEV_TOOLS,
+    query,
+    (tool) => [
+      { value: tool.title, weight: 1 },
+      // Below the title so a name match ("Copy URL") beats a synonym ("Duplicate Tab").
+      { value: tool.keywords, weight: 0.85 },
+      { value: tool.subtitle, weight: 0.5 },
+    ],
+    options,
+  ).map(({ item, score }) => ({ ...item, score }));
 }

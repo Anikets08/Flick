@@ -1,6 +1,6 @@
-import '@/assets/styles/globals.css';
-import { createRoot, type Root } from 'react-dom/client';
-import { StrictMode } from 'react';
+/** @jsxImportSource preact */
+import { render } from 'preact';
+import paletteCss from '@/assets/styles/palette.css?inline';
 import { FlickShell } from '@/components/FlickShell';
 
 function startColorPicker(): void {
@@ -63,6 +63,11 @@ function startColorPicker(): void {
 
   const initCapture = async () => {
     try {
+      // Let the palette's dimmed backdrop disappear first, or every sampled
+      // color comes out darkened.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
       const dataUrl = await browser.runtime.sendMessage({ type: 'CAPTURE_ELEMENT', rect: { x: 0, y: 0, width: 0, height: 0 }, dpr: 1 });
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
         const i = new Image();
@@ -325,18 +330,39 @@ function startElementSelection(): void {
 
 export default defineContentScript({
   matches: ['<all_urls>'],
-  runAt: 'document_idle',
-  cssInjectionMode: 'ui',
+  // Not declared in the manifest: the palette is injected on demand by the
+  // background (see toggleFlickOnTab) the first time Flick is opened on a tab,
+  // so ordinary page loads don't pay for it.
+  registration: 'runtime',
+  // CSS is bundled into the script and handed to the shadow root directly,
+  // saving a file fetch on first open.
+  cssInjectionMode: 'manual',
   main(ctx) {
-    let root: Root | undefined;
-    let isOpen = false;
     let ui: Awaited<ReturnType<typeof createShadowRootUi>> | undefined;
+    let container: HTMLElement | undefined;
+    let shadowHtml: HTMLElement | undefined;
+    let isOpen = false;
 
-    const close = () => {
-      if (!isOpen || !ui) return;
-      ui.remove();
-      isOpen = false;
+    // The palette is mounted once and then only shown/hidden, so reopening
+    // re-renders an existing tree instead of rebuilding it and reloading data.
+    const renderShell = () => {
+      if (container) render(<FlickShell open={isOpen} onClose={close} />, container);
     };
+
+    const setOpen = (next: boolean) => {
+      isOpen = next;
+      // The early keyboard guard (flick-guard) only blocks while this is set.
+      ui?.shadowHost.toggleAttribute('data-flick-open', next);
+      // Hide the shadow root's viewport-sized <html> while closed, or it sits
+      // over the page and swallows clicks. (Hiding the host itself doesn't
+      // stick: WXT's `:host { all: initial !important }` reset overrides it.)
+      if (shadowHtml) shadowHtml.style.display = next ? '' : 'none';
+      renderShell();
+    };
+
+    function close() {
+      if (isOpen) setOpen(false);
+    }
 
     const open = async () => {
       if (isOpen) return;
@@ -346,7 +372,8 @@ export default defineContentScript({
           name: 'flick-palette',
           position: 'overlay',
           anchor: 'body',
-          onMount(uiContainer, _shadow, shadowHost) {
+          css: paletteCss,
+          onMount(uiContainer, shadow, shadowHost) {
             shadowHost.setAttribute('data-flick-host', '');
 
             // Host pages may set a custom root font-size (e.g. YouTube uses
@@ -360,41 +387,32 @@ export default defineContentScript({
               Number.isFinite(rootFontSize) && rootFontSize > 0
                 ? 16 / rootFontSize
                 : 1;
-            const innerHtml = _shadow.querySelector('html');
+            const innerHtml = shadow.querySelector('html');
             if (innerHtml) {
               innerHtml.style.setProperty('--flick-scale', String(scale));
+              shadowHtml = innerHtml;
             }
 
             const app = document.createElement('div');
             app.id = 'flick-root';
             uiContainer.append(app);
-            root = createRoot(app);
-            root.render(
-              <StrictMode>
-                <FlickShell onClose={close} />
-              </StrictMode>,
-            );
-            return root;
+            container = app;
           },
-          onRemove(mountedRoot) {
-            mountedRoot?.unmount();
-            root = undefined;
+          onRemove() {
+            if (container) render(null, container);
+            container = undefined;
           },
         });
+        ui.mount();
       }
 
-      ui.mount();
-      isOpen = true;
-    };
-
-    const toggle = async () => {
-      if (isOpen) close();
-      else await open();
+      setOpen(true);
     };
 
     browser.runtime.onMessage.addListener((message) => {
       if (message?.type === 'FLICK_TOGGLE') {
-        void toggle();
+        if (isOpen) close();
+        else void open();
         return false;
       }
       if (message?.type === 'FLICK_HIDE') {

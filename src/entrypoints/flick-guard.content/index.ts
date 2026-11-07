@@ -5,25 +5,18 @@
  * before any page scripts (e.g. GitHub's global "/" shortcut). While Flick
  * is open, any keyboard event whose target is outside the Flick
  * host is cancelled before the host page can see it.
+ *
+ * "Open" is read from the Flick host's `data-flick-open` attribute rather than
+ * tracked via messages, so it can't drift out of sync when the palette closes
+ * itself (Esc, backdrop click, running an action). The host stays in the DOM
+ * between uses, so its mere presence doesn't mean the palette is showing.
  */
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_start',
   main() {
-    let isOpen = false;
-
-    const getHost = (): HTMLElement | null => {
-      if (!document.body) return null;
-      for (const child of document.body.children) {
-        if (
-          child instanceof HTMLElement &&
-          child.shadowRoot?.getElementById('flick-root')
-        ) {
-          return child;
-        }
-      }
-      return null;
-    };
+    const getHost = (): HTMLElement | null =>
+      document.querySelector<HTMLElement>('[data-flick-host][data-flick-open]');
 
     const isInsideFlick = (target: EventTarget | null, host: HTMLElement): boolean => {
       if (!(target instanceof Node)) return false;
@@ -31,7 +24,6 @@ export default defineContentScript({
     };
 
     const blockOutside = (event: Event) => {
-      if (!isOpen) return;
       const host = getHost();
       if (!host) return;
       if (isInsideFlick(event.target, host)) return;
@@ -45,17 +37,5 @@ export default defineContentScript({
     for (const type of keyboardEvents) {
       window.addEventListener(type, blockOutside, true);
     }
-
-    browser.runtime.onMessage.addListener((message) => {
-      if (message?.type === 'FLICK_TOGGLE') {
-        isOpen = !isOpen;
-        return false;
-      }
-      if (message?.type === 'FLICK_HIDE') {
-        isOpen = false;
-        return false;
-      }
-      return false;
-    });
   },
 });

@@ -1,11 +1,10 @@
 import type { TextSnippet } from '@/types';
+import { createSyncCollection } from './sync-collection';
 
-const SNIPPETS_KEY = 'snippets';
+const snippetStore = createSyncCollection<TextSnippet>({ prefix: 'snippet', legacyKey: 'snippets' });
 
 export async function getAllSnippets(): Promise<TextSnippet[]> {
-  const { snippets } = await browser.storage.sync.get(SNIPPETS_KEY);
-  const stored = snippets as TextSnippet[] | undefined;
-  return stored ?? [];
+  return snippetStore.getAll();
 }
 
 export async function getSnippets(): Promise<TextSnippet[]> {
@@ -14,5 +13,5 @@ export async function getSnippets(): Promise<TextSnippet[]> {
 }
 
 export async function saveSnippets(snippets: TextSnippet[]): Promise<void> {
-  await browser.storage.sync.set({ [SNIPPETS_KEY]: snippets });
+  await snippetStore.saveAll(snippets);
 }

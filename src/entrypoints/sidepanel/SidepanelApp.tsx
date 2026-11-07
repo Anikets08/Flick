@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+/** @jsxImportSource preact */
+import { useEffect, useState } from 'preact/hooks';
 import { FlickShell } from '@/components/FlickShell';
 
 function isHttpUrl(url?: string): boolean {
@@ -18,7 +19,7 @@ export function SidepanelApp() {
   // Auto-close the side panel when the active tab navigates to a normal
   // http(s) page — the content-script overlay takes over there.
   useEffect(() => {
-    const onUpdated = (_tabId: number, info: browser.tabs.OnUpdatedChangeInfo, tab: browser.tabs.Tab) => {
+    const onUpdated = (_tabId: number, info: Browser.tabs.OnUpdatedInfo, tab: Browser.tabs.Tab) => {
       if (tab.active && isHttpUrl(info.url)) {
         window.close();
       }
@@ -42,6 +43,7 @@ export function SidepanelApp() {
   return (
     <div className="flex h-full flex-col">
       <FlickShell
+        open
         onClose={handleClose}
         isPopup
         activeTabId={activeTabId}

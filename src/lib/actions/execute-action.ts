@@ -55,9 +55,16 @@ async function toggleDarkMode(tabId: number): Promise<boolean> {
   return results[0]?.result ?? false;
 }
 
-async function clearCache(tabId: number): Promise<void> {
-  await browser.browsingData.removeCache({ since: 0 });
-  await browser.tabs.reload(tabId);
+/** Clears the HTTP cache and Cache Storage for the tab's site only, then hard-reloads it. */
+async function clearCache(tabId: number): Promise<boolean> {
+  const tab = await getTab(tabId);
+  if (!tab.url || !/^https?:\/\//.test(tab.url)) return false;
+  await browser.browsingData.remove(
+    { origins: [new URL(tab.url).origin] },
+    { cache: true, cacheStorage: true },
+  );
+  await browser.tabs.reload(tabId, { bypassCache: true });
+  return true;
 }
 
 async function showGrid(tabId: number): Promise<void> {
@@ -173,8 +180,13 @@ async function muteTab(tabId: number): Promise<void> {
   await browser.tabs.update(tabId, { muted: !tab.mutedInfo?.muted });
 }
 
-async function moveToNewWindow(tabId: number): Promise<void> {
-  await browser.tabs.move(tabId, { windowId: -1, index: -1 });
+/** Returns false when the tab is already alone in its window — moving it would look like a no-op. */
+async function moveToNewWindow(tabId: number): Promise<boolean> {
+  const tab = await getTab(tabId);
+  const siblings = await browser.tabs.query({ windowId: tab.windowId });
+  if (siblings.length <= 1) return false;
+  await browser.windows.create({ tabId, focused: true });
+  return true;
 }
 
 async function bookmarkPage(tabId: number): Promise<void> {
@@ -286,6 +298,9 @@ export async function executeAction(
     }
     case 'switch-tab':
       await browser.tabs.update(action.tabId, { active: true });
+      if (action.windowId != null) {
+        await browser.windows.update(action.windowId, { focused: true });
+      }
       return;
     case 'close-tab':
       await browser.tabs.remove(action.tabId);
@@ -315,8 +330,9 @@ export async function executeAction(
     }
     case 'clear-cache': {
       if (tabId == null) return;
-      void showToast(tabId, 'Cache cleared, reloading…');
-      await clearCache(tabId);
+      if (!(await clearCache(tabId))) {
+        void showToast(tabId, 'Cache can only be cleared on websites');
+      }
       return;
     }
     case 'show-grid': {
@@ -351,8 +367,9 @@ export async function executeAction(
     }
     case 'move-to-new-window': {
       if (tabId == null) return;
-      void showToast(tabId, 'Moving tab to new window…');
-      await moveToNewWindow(tabId);
+      if (!(await moveToNewWindow(tabId))) {
+        void showToast(tabId, 'This tab is already in its own window');
+      }
       return;
     }
     case 'paste-snippet': {

@@ -1,4 +1,4 @@
-import Fuse from 'fuse.js';
+import { rankItems, type SearchOptions } from '@/lib/search/rank';
 import type { CommandItem } from '@/types';
 import type { TextSnippet } from '@/types';
 
@@ -17,7 +17,7 @@ function snippetToCommandItem(snippet: TextSnippet): CommandItem {
   };
 }
 
-export function searchSnippets(snippets: TextSnippet[], query: string): CommandItem[] {
+export function searchSnippets(snippets: TextSnippet[], query: string, options: SearchOptions = {}): CommandItem[] {
   const enabled = snippets.filter((s) => s.enabled !== false);
 
   if (!query.trim()) {
@@ -30,20 +30,15 @@ export function searchSnippets(snippets: TextSnippet[], query: string): CommandI
     return [snippetToCommandItem(exact)];
   }
 
-  const fuse = new Fuse(enabled, {
-    keys: [
-      { name: 'trigger', weight: 0.5 },
-      { name: 'label', weight: 0.25 },
-      { name: 'text', weight: 0.15 },
-      { name: 'keywords', weight: 0.1 },
+  return rankItems(
+    enabled,
+    query,
+    (snippet) => [
+      { value: snippet.trigger, weight: 1 },
+      { value: snippet.label, weight: 0.8 },
+      { value: snippet.keywords, weight: 0.8 },
+      { value: snippet.text, weight: 0.4 },
     ],
-    threshold: 0.35,
-    includeScore: true,
-    ignoreLocation: true,
-  });
-
-  return fuse.search(query.trim()).map((result) => ({
-    ...snippetToCommandItem(result.item),
-    score: result.score,
-  }));
+    options,
+  ).map(({ item, score }) => ({ ...snippetToCommandItem(item), score }));
 }
