@@ -1,6 +1,6 @@
 {
   "name": "flick",
-  "description": "A command palette for Chrome — navigate fast, run utilities, and manage shortcuts.",
+  "description": "A command palette for Chrome \u2014 navigate fast, run utilities, and manage shortcuts.",
   "private": true,
   "version": "0.1.0",
   "license": "MIT",
@@ -28,7 +28,7 @@
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare",
-    "test:e2e": "wxt build && playwright test"
+    "test:e2e": "wxt build && FLICK_E2E=1 wxt build && playwright test"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { expect, runCommand, tabs, test } from './fixtures';
 import type { Page, Worker } from '@playwright/test';
 
@@ -5,10 +6,6 @@ async function currentTab(sw: Worker, page: Page) {
   return (await tabs(sw)).find((t) => t.url === page.url())!;
 }
 
-// Playwright stores downloads under random names, so match on type instead.
-function pngDownloads(sw: Worker) {
-  return sw.evaluate(() => chrome.downloads.search({ mime: 'image/png' }));
-}
 
 test('toggle dark mode', async ({ sw, page }) => {
   await runCommand(sw, page, 'dark', 'Toggle Dark Mode');
@@ -66,16 +63,24 @@ test('bookmark the page', async ({ sw, page }) => {
     .toBe(1);
 });
 
+// Screenshots are saved by the page (no `downloads` permission), so they show
+// up as ordinary page downloads.
 test('screenshot the visible tab', async ({ sw, page }) => {
-  await runCommand(sw, page, 'screenshot current', 'Screenshot — Current Tab');
-  await expect.poll(async () => (await pngDownloads(sw)).length).toBe(1);
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    runCommand(sw, page, 'screenshot current', 'Screenshot — Current Tab'),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/^screenshot-\d+\.png$/);
+  expect(fs.statSync((await download.path())!).size).toBeGreaterThan(1000);
+  await expect(page.getByText('Screenshot saved to Downloads')).toBeVisible();
 });
 
 test('screenshot a selected element', async ({ sw, page }) => {
   await runCommand(sw, page, 'element', 'Screenshot — Select Element');
   await expect(page.locator('#flick-element-highlight')).toHaveCount(1);
-  await page.locator('#swatch').click();
-  await expect.poll(async () => (await pngDownloads(sw)).length).toBe(1);
+  const [download] = await Promise.all([page.waitForEvent('download'), page.locator('#swatch').click()]);
+  expect(download.suggestedFilename()).toMatch(/^element-screenshot-\d+\.png$/);
+  expect(fs.statSync((await download.path())!).size).toBeGreaterThan(100);
 });
 
 test('color picker copies the clicked pixel', async ({ sw, page }) => {

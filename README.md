@@ -133,22 +133,22 @@ Load the built folder unpacked, or run `npm run zip` to package for the Chrome W
 | **macOS** | `⌘⇧K` (Command + Shift + K) |
 | **Windows / Linux** | `Ctrl+Shift+K` |
 
-**Fallback:** click the Flick icon in the toolbar.
+Or click the Flick icon in the toolbar — that always works, even without a shortcut.
 
-> Chrome requires `Ctrl` or `⌘` on every extension shortcut. Change it anytime at `chrome://extensions/shortcuts`.
+> If another extension already uses `⌘⇧K`, Chrome leaves Flick's shortcut unset. Flick's welcome page (shown on install), the Settings header, and the palette footer all show the current shortcut and link to `chrome://extensions/shortcuts` to set one.
 
 ### Palette controls
 
 | Key | Action |
 |---|---|
-| `↑` / `↓` | Navigate results |
+| `↑` / `↓` (or `Ctrl+N` / `Ctrl+P`) | Navigate results |
 | `Enter` | Select highlighted item |
 | `Esc` | Close palette |
 | Click outside | Close palette |
 
 ### Managing shortcuts & snippets
 
-Open the settings page from the palette footer (**Settings** button) or by clicking the toolbar icon. The settings page features:
+Open the settings page from the palette footer (**Settings** button) or by right-clicking the toolbar icon → **Options**. The settings page features:
 
 - **Sticky sidebar** navigation between Shortcuts, Snippets, and Features
 - **Modal-based forms** — click **New** to add, or **Edit** on any row to modify
@@ -185,7 +185,6 @@ flick/
 │   ├── entrypoints/
 │   │   ├── background/            # Service worker — commands, actions
 │   │   ├── flick.content/         # Overlay UI (Shadow DOM)
-│   │   ├── flick-guard.content/   # Keyboard event guard
 │   │   └── options/               # Settings page
 │   ├── hooks/                     # Search & interaction hooks
 │   ├── lib/
@@ -224,9 +223,9 @@ Select → EXECUTE_ACTION message → Background
 tabs API / scripting API / clipboard / downloads
 ```
 
-The palette communicates with the background service worker via `browser.runtime.sendMessage`. All actions requiring privileged APIs (`tabs`, `bookmarks`, `captureVisibleTab`, `downloads`, `browsingData`) execute in the background. The content script handles UI, search, and element-selection screenshots.
+The palette communicates with the background service worker via `browser.runtime.sendMessage`. All actions requiring privileged APIs (`tabs`, `bookmarks`, `captureVisibleTab`, `browsingData`) execute in the background; screenshots are saved by the page itself, so no `downloads` permission is needed. The content script handles UI, search, and element-selection screenshots.
 
-A separate **guard content script** runs at `document_start` to intercept keyboard events while the palette is open, preventing host-page shortcuts from firing.
+While the palette is open it captures keyboard events at `window` (capture phase), so host-page shortcuts don't fire. There is no always-on content script: Flick only touches a page after you open it there, via `activeTab`.
 
 For the full design document, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 

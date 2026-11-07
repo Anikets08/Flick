@@ -3,6 +3,32 @@ import { render } from 'preact';
 import paletteCss from '@/assets/styles/palette.css?inline';
 import { FlickShell } from '@/components/FlickShell';
 
+/**
+ * Saves a file to the user's Downloads folder via a page-level download link,
+ * which avoids needing the `downloads` extension permission.
+ */
+function saveFile(data: Blob | string, filename: string): void {
+  const blob = typeof data === 'string' ? dataUrlToBlob(data) : data;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.style.display = 'none';
+  document.documentElement.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(',', 2);
+  const mime = /data:([^;]+)/.exec(header)?.[1] ?? 'application/octet-stream';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 function startColorPicker(): void {
   const tearDropSvg = [
     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="28" viewBox="0 0 24 28">',
@@ -287,16 +313,8 @@ function startElementSelection(): void {
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) return;
 
-      const buffer = await blob.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      const croppedDataUrl = `data:image/png;base64,${btoa(binary)}`;
-
-      await browser.runtime.sendMessage({
-        type: 'DOWNLOAD_ELEMENT',
-        dataUrl: croppedDataUrl,
-      });
+      saveFile(blob, `element-screenshot-${Date.now()}.png`);
+      await browser.runtime.sendMessage({ type: 'SHOW_TOAST', message: 'Screenshot saved to Downloads' });
     } catch (err) {
       console.error('[Flick] Element capture failed:', err);
     }
@@ -351,8 +369,6 @@ export default defineContentScript({
 
     const setOpen = (next: boolean) => {
       isOpen = next;
-      // The early keyboard guard (flick-guard) only blocks while this is set.
-      ui?.shadowHost.toggleAttribute('data-flick-open', next);
       // Hide the shadow root's viewport-sized <html> while closed, or it sits
       // over the page and swallows clicks. (Hiding the host itself doesn't
       // stick: WXT's `:host { all: initial !important }` reset overrides it.)
@@ -422,6 +438,10 @@ export default defineContentScript({
       if (message?.type === 'ENTER_ELEMENT_SELECTION') {
         close();
         startElementSelection();
+        return false;
+      }
+      if (message?.type === 'SAVE_FILE') {
+        saveFile(message.dataUrl as string, message.filename as string);
         return false;
       }
       if (message?.type === 'ENTER_COLOR_PICKER') {

@@ -28,9 +28,11 @@ function isBrowserShortcut(event: KeyboardEvent): boolean {
  * While Flick is open: blur the page, mark siblings inert, and stop keyboard
  * events from reaching the host page (e.g. GitHub's "/" search shortcut).
  *
- * Listeners are attached to `document` in the capture phase — the earliest
- * interception point — so page-level handlers on `document`/`window` never
- * see the event.  Events originating inside the Shadow DOM are retargeted
+ * Keyboard listeners are attached to `window` in the capture phase — the
+ * earliest point an injected script can intercept — so page handlers on
+ * `document`, and on `window` registered after us, never see stray keys.
+ * (There's no document_start guard script: that would need host access to
+ * every site.) Events originating inside the Shadow DOM are retargeted
  * to the host and allowed through; `stopBubbleToPage` then prevents them
  * from bubbling back to the page.
  *
@@ -84,7 +86,7 @@ export function useBlockPageInteraction(active: boolean) {
     ] as const;
 
     for (const type of keyboardEvents) {
-      document.addEventListener(type, blockOutside, true);
+      window.addEventListener(type, blockOutside, true);
       host.addEventListener(type, stopBubbleToPage);
     }
 
@@ -112,7 +114,7 @@ export function useBlockPageInteraction(active: boolean) {
 
     return () => {
       for (const type of keyboardEvents) {
-        document.removeEventListener(type, blockOutside, true);
+        window.removeEventListener(type, blockOutside, true);
         host.removeEventListener(type, stopBubbleToPage);
       }
 

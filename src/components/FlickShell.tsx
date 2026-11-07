@@ -20,6 +20,7 @@ import {
   Pipette,
   Ruler,
   Search,
+  Keyboard,
   Settings,
   Trash2,
   Volume2,
@@ -40,6 +41,23 @@ interface FlickShellProps {
 
 function openSettings(): void {
   void browser.runtime.sendMessage({ type: 'OPEN_OPTIONS' });
+}
+
+/**
+ * '' when Chrome left the "open Flick" shortcut unassigned (it silently skips
+ * keys another extension already uses), so the footer can offer to set one.
+ * Content scripts can't read commands, so the background answers.
+ */
+function useOpenShortcut(open: boolean): string | null {
+  const [shortcut, setShortcut] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    browser.runtime
+      .sendMessage({ type: 'GET_SHORTCUT' })
+      .then((value: string | undefined) => setShortcut(value ?? null))
+      .catch(() => {});
+  }, [open]);
+  return shortcut;
 }
 
 const actionIcon = (item: CommandItem) => {
@@ -110,6 +128,7 @@ export function FlickShell({ open, onClose, isPopup, activeTabId }: FlickShellPr
     loading,
   } = useFlickSearch(open, activeTabId);
 
+  const shortcut = useOpenShortcut(open);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -355,14 +374,29 @@ export function FlickShell({ open, onClose, isPopup, activeTabId }: FlickShellPr
             <span>close</span>
           </div>
 
-          <button
-            type="button"
-            onClick={openSettings}
-            className="flex items-center gap-1 rounded-md px-2 py-1 transition-colors hover:text-white"
-          >
-            <Settings className="size-3" />
-            Settings
-          </button>
+          <div className="flex items-center gap-1">
+            {shortcut === '' ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void browser.runtime.sendMessage({ type: 'OPEN_SHORTCUTS' });
+                  onClose();
+                }}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-amber-300 transition-colors hover:text-amber-200"
+              >
+                <Keyboard className="size-3" />
+                Set shortcut
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={openSettings}
+              className="flex items-center gap-1 rounded-md px-2 py-1 transition-colors hover:text-white"
+            >
+              <Settings className="size-3" />
+              Settings
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -59,7 +59,7 @@ flowchart TB
 
 | Entrypoint | Role |
 |---|---|
-| `background/` | Listens for `open-flick` command; injects content script if needed; runs actions that require extension APIs |
+| `background/` | Opens the palette on the `open-flick` command or a toolbar click (both grant `activeTab`); injects the palette script on first use; runs actions that require extension APIs; opens the welcome page on install |
 | `flick.content/` | Runtime-registered content script; mounts React overlay via `createIntegratedUi` |
 | `options/` | Alias editor, shortcut reference, import/export |
 
