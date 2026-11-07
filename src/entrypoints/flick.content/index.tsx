@@ -82,7 +82,10 @@ function startColorPicker(): void {
 
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-  const dpr = window.devicePixelRatio;
+  // Image pixels per CSS pixel. Measured from the capture rather than taken
+  // from devicePixelRatio, which also counts page zoom and can disagree with
+  // the size captureVisibleTab returns.
+  let scale = window.devicePixelRatio;
 
   let active = true;
   let captured = false;
@@ -94,7 +97,7 @@ function startColorPicker(): void {
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       });
-      const dataUrl = await browser.runtime.sendMessage({ type: 'CAPTURE_ELEMENT', rect: { x: 0, y: 0, width: 0, height: 0 }, dpr: 1 });
+      const dataUrl = await browser.runtime.sendMessage({ type: 'CAPTURE_ELEMENT' });
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
         const i = new Image();
         i.onload = () => resolve(i);
@@ -104,6 +107,7 @@ function startColorPicker(): void {
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
       ctx.drawImage(img, 0, 0);
+      scale = img.naturalWidth / window.innerWidth;
       captured = true;
     } catch {
       // Page capture failed; color will not preview but clicking still attempts
@@ -114,7 +118,7 @@ function startColorPicker(): void {
 
   const getHexAt = (x: number, y: number): string | null => {
     if (!captured) return null;
-    const data = ctx.getImageData(Math.round(x * dpr), Math.round(y * dpr), 1, 1).data;
+    const data = ctx.getImageData(Math.round(x * scale), Math.round(y * scale), 1, 1).data;
     const [r, g, b] = data;
     return '#' + [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('');
   };
@@ -278,13 +282,11 @@ function startElementSelection(): void {
     });
 
     const rect = target.getBoundingClientRect();
-    const dpr = window.devicePixelRatio;
 
     try {
       const fullPageDataUrl = await browser.runtime.sendMessage({
         type: 'CAPTURE_ELEMENT',
         rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
-        dpr,
       });
 
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -294,20 +296,21 @@ function startElementSelection(): void {
         img.src = fullPageDataUrl;
       });
 
+      const scale = img.naturalWidth / window.innerWidth;
       const canvas = document.createElement('canvas');
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      canvas.width = rect.width * scale;
+      canvas.height = rect.height * scale;
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(
         img,
-        rect.left * dpr,
-        rect.top * dpr,
-        rect.width * dpr,
-        rect.height * dpr,
+        rect.left * scale,
+        rect.top * scale,
+        rect.width * scale,
+        rect.height * scale,
         0,
         0,
-        rect.width * dpr,
-        rect.height * dpr,
+        rect.width * scale,
+        rect.height * scale,
       );
 
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));

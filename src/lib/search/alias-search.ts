@@ -56,7 +56,14 @@ export function searchAliases(aliases: UrlAlias[], query: string, options: Searc
   if (templateMatch) {
     const { alias, argument } = templateMatch;
     const resolvedUrl = alias.urlTemplate!.replaceAll(TEMPLATE_PLACEHOLDER, encodeURIComponent(argument));
-    return [aliasToCommandItem({ ...alias, url: resolvedUrl })];
+    // Say what Enter will do: "YouTube: lofi beats" → the URL it opens.
+    return [
+      {
+        ...aliasToCommandItem({ ...alias, url: resolvedUrl }),
+        title: `${alias.description ?? alias.trigger}: ${argument}`,
+        subtitle: alias.urlTemplate!.replace(/^https?:\/\//, '').replaceAll(TEMPLATE_PLACEHOLDER, argument),
+      },
+    ];
   }
 
   const normalizedQuery = normalizeTrigger(query);

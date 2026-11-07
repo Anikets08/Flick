@@ -11,8 +11,10 @@ export default defineConfig({
   // Separate folder so the E2E build never replaces the one loaded in Chrome.
   outDir: isE2E ? '.output-e2e' : '.output',
   manifest: {
-    name: 'Flick',
-    description: 'A command palette for Chrome — navigate fast, run utilities, and manage shortcuts.',
+    name: 'Flick — Command Palette, Tab Search & Shortcuts',
+    short_name: 'Flick',
+    description:
+      'A keyboard command palette for Chrome: search tabs and bookmarks, jump to sites with shortcuts, paste snippets and run page tools.',
     // No host permissions: the shortcut / toolbar click grants `activeTab`,
     // which covers injecting the palette and running tools on that tab.
     // Store justifications for each entry: docs/STORE_LISTING.md.

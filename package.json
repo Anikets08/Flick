@@ -1,8 +1,8 @@
 {
   "name": "flick",
-  "description": "A command palette for Chrome \u2014 navigate fast, run utilities, and manage shortcuts.",
+  "description": "A keyboard command palette for Chrome: search tabs and bookmarks, jump to sites with shortcuts, paste snippets and run page tools.",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "license": "MIT",
   "type": "module",
   "repository": {
