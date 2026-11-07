@@ -4,13 +4,18 @@
 
 # Flick
 
-A command palette for Chrome. Press a shortcut, type a command, and go — custom URL aliases, text snippets, and built-in developer tools in one fast, keyboard-first overlay.
+**Your browser, one shortcut away.**
 
+A keyboard command palette for Chrome: search tabs and bookmarks, jump to sites with your own shortcuts, paste snippets, and run page tools — without touching the mouse.
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-in%20review-4285F4?logo=googlechrome&logoColor=white)](#installation)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Built with WXT](https://img.shields.io/badge/Built%20with-WXT-34d399.svg)](https://wxt.dev)
-[![React 19](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev)
+[![Preact 10](https://img.shields.io/badge/Preact-10-673ab8.svg)](https://preactjs.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)](https://www.typescriptlang.org)
 [![Tailwind CSS 4](https://img.shields.io/badge/Tailwind%20CSS-4-06b6d4.svg)](https://tailwindcss.com)
+
+<img src="store/promo/marquee-1400x560.png" alt="Flick — your browser, one shortcut away" width="100%">
 
 </div>
 
@@ -18,21 +23,41 @@ A command palette for Chrome. Press a shortcut, type a command, and go — custo
 
 ## Overview
 
-Flick brings the speed of macOS Spotlight to your browser. Instead of reaching for the mouse or typing long URLs, press **`⌘⇧K`** and type a few characters to jump anywhere or trigger an action.
+Press **`⌘⇧K`** (`Ctrl+Shift+K` on Windows/Linux) or click the toolbar icon on any page, type a few characters, and jump anywhere or trigger an action.
+
+<p align="center">
+  <img src="store/video/flick-demo.gif" alt="Flick in action: searching tabs and bookmarks, a YouTube search shortcut, dark mode, grid and rulers, color picker, and a snippet" width="800">
+</p>
 
 | What you type | What happens |
 |---|---|
+| `roadmap` | Finds matching open tabs, bookmarks, and (optionally) history |
 | `gh` | Opens github.com in a new tab |
-| `mdn` | Opens MDN Web Docs |
+| `yt tony stark` | Searches YouTube for "tony stark" |
 | `email` | Copies your email address to the clipboard |
 | `ss` | Takes a screenshot of the current tab |
 | `cp` | Picks a color from anywhere on the page |
 | `dark` | Toggles dark mode on the page |
 | `grid` | Overlays a 12-column design grid |
 | `cache` | Clears the current site's cache and hard-reloads |
-| `yt tony stark` | Searches YouTube for "tony stark" |
 
-Everything is configurable from a polished settings page — add your own shortcuts, snippets, and toggle built-in tools on or off.
+Everything is configurable from the settings page — add your own shortcuts and snippets, and toggle built-in tools on or off. No account, no tracking: nothing leaves your browser ([privacy policy](./PRIVACY.md)).
+
+### Screenshots
+
+<table>
+  <tr>
+    <td><img src="store/screenshots/01-command-palette.png" alt="The command palette over a page"></td>
+    <td><img src="store/screenshots/02-tab-bookmark-search.png" alt="Searching open tabs and bookmarks"></td>
+  </tr>
+  <tr>
+    <td><img src="store/screenshots/03-shortcuts-snippets.png" alt="A search shortcut and a text snippet"></td>
+    <td><img src="store/screenshots/04-page-tools.png" alt="Dark mode, grid with rulers, and the color picker"></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="store/screenshots/05-private-customizable.png" alt="Privacy promises and the settings page"></td>
+  </tr>
+</table>
 
 ---
 
@@ -168,7 +193,7 @@ Open the settings page from the palette footer (**Settings** button) or by right
 | Search | Built-in ranker (`src/lib/search/rank.ts`) | Word/prefix ranking + typo fallback, no dependency |
 | State | React hooks + `chrome.storage` | No extra library needed at this size |
 | Testing | [Playwright](https://playwright.dev) | Loads the built extension in Chromium for end-to-end tests |
-| Icons | Lucide React | Consistent, tree-shakeable |
+| Icons | Lucide (Preact and React builds) | Consistent, tree-shakeable |
 
 ---
 
@@ -180,7 +205,7 @@ flick/
 ├── public/                        # Extension icons & static assets
 ├── src/
 │   ├── assets/styles/             # Global CSS + Tailwind theme
-│   ├── components/                # React UI (FlickShell)
+│   ├── components/                # Palette UI (FlickShell, plain Preact)
 │   ├── data/                      # Default aliases, snippets, dev tools
 │   ├── entrypoints/
 │   │   ├── background/            # Service worker — commands, actions

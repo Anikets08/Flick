@@ -119,7 +119,9 @@ test('Enter on an exact shortcut opens it in a new tab', async ({ context, sw, p
 test('URL template fills {variable} from the query', async ({ context, sw, page }) => {
   const input = await openPalette(sw, page);
   await input.fill('yt tony stark');
-  await expect(paletteRow(page, 'YouTube')).toHaveAttribute('aria-selected', 'true');
+  const row = paletteRow(page, 'YouTube: tony stark');
+  await expect(row).toHaveAttribute('aria-selected', 'true');
+  await expect(row).toContainText('www.youtube.com/results?search_query=tony stark');
   const [newPage] = await Promise.all([context.waitForEvent('page'), input.press('Enter')]);
   await expect(newPage).toHaveURL('https://www.youtube.com/results?search_query=tony%20stark');
 });

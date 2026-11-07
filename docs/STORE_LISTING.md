@@ -4,6 +4,80 @@ Copy-paste answers for the Developer Dashboard. Keep this in sync with
 `wxt.config.ts` — `e2e/manifest.spec.ts` fails if the manifest asks for anything
 not listed here.
 
+## Store listing (ASO)
+
+Search on the Web Store weighs the **name** most, then the **summary**, then the
+description. Each keyword appears where a user would expect it, and none are
+repeated for ranking: Google rejects keyword stuffing and other products' names.
+
+| Field | Value |
+|---|---|
+| Name (manifest `name`, ≤ 75) | Flick — Command Palette, Tab Search & Shortcuts |
+| Summary (manifest `description`, ≤ 132) | A keyboard command palette for Chrome: search tabs and bookmarks, jump to sites with shortcuts, paste snippets and run page tools. |
+| Category | Workflow & Planning (alternative: Developer Tools) |
+| Language | English |
+| Version | 1.0.0 |
+
+Target searches: *command palette*, *tab search*, *tab switcher*, *search bookmarks*, *keyboard shortcuts*, *url shortcuts*, *quick launcher*, *text snippets*, *color picker*, *dark mode*, *screenshot*.
+
+### Description (paste as plain text)
+
+```
+Flick puts your whole browser one shortcut away.
+
+Press ⌘⇧K (Ctrl+Shift+K on Windows and Linux) on any page, or click the toolbar icon, and type a few letters. Jump to an open tab, find a bookmark, open a site with your own shortcut, paste saved text, or run a tool on the page — without touching the mouse.
+
+SEARCH EVERYTHING
+• Open tabs — switch to any tab by title or address, across all windows
+• Bookmarks — find any bookmark in a keystroke
+• History — optional; turn it on in Settings when you want it
+• The web — anything else goes straight to a Google search
+
+SHORTCUTS THAT TAKE YOU THERE
+• Make your own: "gh" opens GitHub, "cal" opens your calendar
+• Search built in: "yt lofi beats" searches YouTube, "pr 482" opens pull request #482
+• Open in the current tab or a new one, and sync to every computer you use Chrome on
+
+SNIPPETS
+• Save text you type all the time — your email, address, signature, meeting link
+• Type "email", press Enter, and it's on your clipboard
+
+15 BUILT-IN PAGE TOOLS
+• Screenshot the visible page, or just one element
+• Color picker — hover for a live preview, click to copy the hex code
+• Dark mode for any site
+• 12-column grid overlay and pixel rulers for design checks
+• Copy the URL, title, or a Markdown link
+• Duplicate, pin, mute, or pop a tab out into its own window
+• Bookmark the page
+• Clear this site's cache and hard-reload
+
+MADE FOR THE KEYBOARD
+• Opens in milliseconds and stays out of the page's way
+• Arrow keys or Ctrl+N / Ctrl+P to move, Enter to run, Esc to close
+• Recent commands come first, so your favorites are always one keystroke away
+
+PRIVATE BY DESIGN
+• No account, no ads, no tracking, no analytics
+• Nothing you do in Flick leaves your browser
+• Flick can't see a site until you open it there
+• Import and export your shortcuts and snippets anytime
+
+Free and open source: https://github.com/Anikets08/Flick
+```
+
+### Graphics
+
+Generated from the real extension by the scripts in `store/scripts/` (see `store/README.md`).
+
+| Asset | File | Required |
+|---|---|---|
+| Store icon 128×128 | `public/icon/128.png` (from the package) | yes |
+| Screenshots 1280×800 (in this order) | `store/screenshots/01…05-*.png` | ≥ 1 |
+| Small promo tile 440×280 | `store/promo/small-tile-440x280.png` | yes |
+| Marquee 1400×560 | `store/promo/marquee-1400x560.png` | optional (needed to be featured) |
+| Promo video | `store/video/flick-promo.mp4` → upload to YouTube, paste the link | optional |
+
 ## Single purpose
 
 > Flick is a keyboard-driven command palette for Chrome: press a shortcut (or click the toolbar icon), type a few letters, and jump to a site, open tab, bookmark, or page from history, paste a saved snippet, or run a quick tool on the current page.
