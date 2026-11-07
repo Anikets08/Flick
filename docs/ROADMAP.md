@@ -101,4 +101,6 @@ Phased plan for Flick. Each phase is shippable on its own.
 | 2026-06-19 | Shadow DOM guard content script | Block host-page shortcuts at document_start |
 | 2026-06-20 | Modal-based forms in settings | Cleaner UX than inline forms |
 | 2026-11-07 | Preact instead of React; own list instead of cmdk; own ranker instead of Fuse.js; drop tailwind-merge | Palette JS 141 KB → ~56 KB. Palette stays mounted between opens (~5 ms reopen) |
-| 2026-11-07 | Palette injected on demand, CSS inlined | Pages that never open Flick only load the 4 KB keyboard guard |
+| 2026-11-07 | Palette injected on demand, CSS inlined | Pages that never open Flick load nothing |
+| 2026-11-07 | No host permissions; drop the document_start guard script and `downloads` | `activeTab` (shortcut / toolbar click) covers everything; avoids the "all websites" warning and in-depth store review. See docs/STORE_LISTING.md |
+| 2026-11-07 | Toolbar icon opens the palette; welcome page on install | Works even when Chrome can't assign the default shortcut (it silently skips keys other extensions use) |

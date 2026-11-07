@@ -1,5 +1,6 @@
 import { executeAction, showToast } from '@/lib/actions/execute-action';
 import { listTabs, searchBrowser } from '@/lib/search/browser-search';
+import { getOpenShortcut, OPEN_FLICK_COMMAND, openShortcutSettings } from '@/lib/shortcut';
 import { getAllAliases, saveAliases } from '@/lib/storage/aliases';
 import { isRestrictedTabUrl, openFlickOnActiveTab, openFlickSidePanel } from '@/lib/open-flick';
 import type { CommandAction } from '@/types';
@@ -63,16 +64,16 @@ export default defineBackground(() => {
     if (sidePanelTabId === tabId) sidePanelTabId = undefined;
   });
 
-  // ── Command handler ──────────────────────────────────────────────────
-  browser.commands.onCommand.addListener((command) => {
-    if (command !== 'open-flick') return;
-
+  // ── Opening the palette ─────────────────────────────────────────────
+  // Shared by the keyboard shortcut and the toolbar icon. Both grant
+  // `activeTab` for the current tab, which is all the access Flick needs.
+  const openFlick = (tabId: number | undefined, tabUrl: string | undefined) => {
     // SYNCHRONOUS path — no `await` before this point, so the user gesture
-    // from the keyboard shortcut is still valid for sidePanel.open().
-    if (isRestrictedTabUrl(activeTabUrl)) {
-      if (activeTabId != null) {
-        openFlickSidePanel(activeTabId);
-        sidePanelTabId = activeTabId;
+    // is still valid for sidePanel.open().
+    if (isRestrictedTabUrl(tabUrl)) {
+      if (tabId != null) {
+        openFlickSidePanel(tabId);
+        sidePanelTabId = tabId;
       } else {
         // Cache not ready yet (first press after service-worker startup).
         // Open for the current window — the side panel will query the
@@ -84,14 +85,21 @@ export default defineBackground(() => {
       return;
     }
 
-    // Normal page (URL cached and not restricted) — async content-script flow.
+    // Normal page — async content-script flow.
     void openFlickOnActiveTab().then((result) => {
       if (!result.ok) console.warn('[Flick]', result.reason);
     });
+  };
+
+  browser.commands.onCommand.addListener((command) => {
+    if (command === OPEN_FLICK_COMMAND) openFlick(activeTabId, activeTabUrl);
   });
 
-  browser.action.onClicked.addListener(() => {
-    void browser.runtime.openOptionsPage();
+  // The toolbar icon opens the palette too, so Flick works even when Chrome
+  // couldn't assign the keyboard shortcut. Settings stay one click away in
+  // the palette footer and the icon's right-click "Options" item.
+  browser.action.onClicked.addListener((tab) => {
+    openFlick(tab.id, tab.url);
   });
 
   const handleMessage = async (
@@ -118,22 +126,19 @@ export default defineBackground(() => {
         return browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
       }
 
-      case 'DOWNLOAD_ELEMENT': {
-        const timestamp = Date.now();
-        await browser.downloads.download({
-          url: message.dataUrl,
-          filename: `element-screenshot-${timestamp}.png`,
-          saveAs: false,
-        });
-        return true;
-      }
-
       case 'SHOW_TOAST':
         if (sender.tab?.id) void showToast(sender.tab.id, message.message as string);
         return undefined;
 
       case 'OPEN_OPTIONS':
         void browser.runtime.openOptionsPage();
+        return undefined;
+
+      case 'GET_SHORTCUT':
+        return getOpenShortcut();
+
+      case 'OPEN_SHORTCUTS':
+        void openShortcutSettings();
         return undefined;
 
       default:
@@ -155,8 +160,13 @@ export default defineBackground(() => {
     if (reason !== 'install') return;
 
     // Sync storage may already hold shortcuts from another device.
-    if ((await getAllAliases()).length) return;
-    const { DEFAULT_ALIASES } = await import('@/data/default-aliases');
-    await saveAliases(DEFAULT_ALIASES);
+    if (!(await getAllAliases()).length) {
+      const { DEFAULT_ALIASES } = await import('@/data/default-aliases');
+      await saveAliases(DEFAULT_ALIASES);
+    }
+
+    // Welcome page: shows the keyboard shortcut, or how to set one if Chrome
+    // couldn't assign it (it silently skips shortcuts already in use).
+    await browser.tabs.create({ url: browser.runtime.getURL('/options.html?welcome=1') });
   });
 });

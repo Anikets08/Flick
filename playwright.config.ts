@@ -1,7 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
 // Each test launches its own Chromium profile with the built extension
-// (.output/chrome-mv3), so run `npm run build` first — `npm run test:e2e` does.
+// (.output-e2e/chrome-mv3, an E2E variant with host access) — build it with
+// `npm run test:e2e`, which runs the build first.
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,

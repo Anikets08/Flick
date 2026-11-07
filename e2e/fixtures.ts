@@ -1,7 +1,9 @@
 import path from 'node:path';
 import { test as base, chromium, expect, type BrowserContext, type Page, type Worker } from '@playwright/test';
 
-const EXTENSION_PATH = path.resolve(process.cwd(), '.output/chrome-mv3');
+// Built by `npm run test:e2e` (FLICK_E2E=1), which adds host access so tests
+// can open the palette without a real keyboard shortcut.
+const EXTENSION_PATH = path.resolve(process.cwd(), '.output-e2e/chrome-mv3');
 
 /**
  * Every http(s) request is answered locally, so tests never touch the network
@@ -26,6 +28,8 @@ function stubPage(url: string): string {
 }
 
 type Fixtures = {
+  /** Leave the install-time welcome tab open (closed by default to keep tab counts predictable). */
+  keepWelcome: boolean;
   context: BrowserContext;
   sw: Worker;
   extensionId: string;
@@ -33,6 +37,8 @@ type Fixtures = {
 };
 
 export const test = base.extend<Fixtures>({
+  keepWelcome: [false, { option: true }],
+
   context: async ({}, use) => {
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
@@ -49,12 +55,17 @@ export const test = base.extend<Fixtures>({
     await context.close();
   },
 
-  sw: async ({ context }, use) => {
+  sw: async ({ context, keepWelcome }, use) => {
     const sw = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
-    // Wait for onInstalled to seed the default shortcuts.
+    // Wait for onInstalled to seed the default shortcuts and open the welcome tab.
     await expect
       .poll(async () => (await syncItems(sw, 'alias')).length)
       .toBeGreaterThan(0);
+    const isWelcome = (p: Page) => p.url().includes('options.html?welcome');
+    await expect.poll(() => context.pages().some(isWelcome)).toBe(true);
+    if (!keepWelcome) {
+      for (const p of context.pages().filter(isWelcome)) await p.close();
+    }
     await use(sw);
   },
 
@@ -63,7 +74,7 @@ export const test = base.extend<Fixtures>({
   },
 
   page: async ({ context, sw: _sw }, use) => {
-    const page = context.pages()[0] ?? (await context.newPage());
+    const page = context.pages().find((p) => !p.url().startsWith('chrome-extension://')) ?? (await context.newPage());
     await page.goto('https://site.test/home?title=Home');
     await use(page);
   },

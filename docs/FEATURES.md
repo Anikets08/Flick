@@ -96,7 +96,7 @@ Built-in commands that run directly on the active tab. Search by name or keyword
 ## Technical Architecture
 
 - **Shadow DOM isolation** — the palette is rendered in a closed shadow root, completely isolated from page styles
-- **Page interaction guard** — when Flick is open, keyboard and focus events are captured to prevent leaking to the host page
+- **Page interaction guard** — while the palette is open, keyboard and focus events are captured (at `window`, capture phase) so they don't leak to the host page
 - **Service worker** — background script handles command dispatch and executes all actions
 - **Message passing** — palette communicates with the background via `browser.runtime.sendMessage` (`EXECUTE_ACTION`, `OPEN_OPTIONS`)
 - **Feature detection** — restricted URLs (`chrome://`, `chrome-extension://`, `about:`) are detected and palette is blocked from opening

@@ -13,7 +13,7 @@
 | `npm run dev` | Start WXT dev server + load extension in Chrome |
 | `npm run build` | Production build → `.output/chrome-mv3/` |
 | `npm run compile` | Typecheck only |
-| `npm run test:e2e` | Build, then run Playwright end-to-end tests against the built extension (`HEADED=1` to watch) |
+| `npm run test:e2e` | Build (production + an E2E variant in `.output-e2e/` with host access), then run Playwright tests (`HEADED=1` to watch) |
 | `npm run zip` | Build + zip for Chrome Web Store |
 
 ## First-time setup
@@ -141,7 +141,8 @@ Some APIs differ; test before shipping.
 ## Publishing checklist (future)
 
 - [ ] Icons 16–128px
-- [ ] Privacy policy (if using sync/history)
+- [ ] Privacy policy — `PRIVACY.md`
+- [ ] Permission justifications — `docs/STORE_LISTING.md`
 - [ ] Store screenshots
 - [ ] `npm run test:e2e` passes
 - [ ] `npm run zip`

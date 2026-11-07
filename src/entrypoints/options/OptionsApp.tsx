@@ -28,6 +28,7 @@ import { getAllSnippets, saveSnippets } from '@/lib/storage/snippets';
 import { createExportData, downloadExport, mergeImport, parseImportData } from '@/lib/import-export';
 import { DEV_TOOLS } from '@/data/dev-tools';
 import { hasHistoryPermission } from '@/lib/search/browser-search';
+import { getOpenShortcut, openShortcutSettings } from '@/lib/shortcut';
 
 import { cn } from '@/lib/cn';
 
@@ -360,6 +361,96 @@ function BrowserSearchSection() {
   );
 }
 
+const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform);
+const DEFAULT_SHORTCUT_LABEL = IS_MAC ? '⌘⇧K' : 'Ctrl+Shift+K';
+
+/** Current "open Flick" shortcut; '' if unset, null while loading. Refreshes when the tab regains focus. */
+function useOpenShortcut(): string | null {
+  const [shortcut, setShortcut] = useState<string | null>(null);
+  useEffect(() => {
+    const refresh = () => {
+      getOpenShortcut().then(setShortcut, () => setShortcut(''));
+    };
+    refresh();
+    // Users change it on chrome://extensions/shortcuts and come back.
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, []);
+  return shortcut;
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded-md bg-white/[0.08] px-1.5 py-0.5 font-mono text-xs text-white ring-1 ring-white/[0.08]">
+      {children}
+    </kbd>
+  );
+}
+
+function ShortcutBadge({ shortcut }: { shortcut: string | null }) {
+  if (shortcut === null) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => void openShortcutSettings()}
+      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--flick-muted)] transition-colors hover:bg-white/[0.04] hover:text-white"
+    >
+      {shortcut ? (
+        <>
+          Open with <Kbd>{shortcut}</Kbd>
+        </>
+      ) : (
+        <span className="text-amber-300">No shortcut set</span>
+      )}
+      <span className="text-xs opacity-60">Change</span>
+    </button>
+  );
+}
+
+function ShortcutNotice({ shortcut, welcome }: { shortcut: string | null; welcome: boolean }) {
+  if (shortcut === null || (shortcut && !welcome)) return null;
+
+  if (!shortcut) {
+    return (
+      <section
+        aria-label="Keyboard shortcut not set"
+        className="mb-8 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-5"
+      >
+        <h2 className="text-sm font-semibold text-amber-200">Set a keyboard shortcut to open Flick</h2>
+        <p className="mt-1.5 max-w-prose text-sm leading-relaxed text-[var(--flick-muted)]">
+          Chrome couldn&rsquo;t assign <Kbd>{DEFAULT_SHORTCUT_LABEL}</Kbd> — another extension is probably using it.
+          Pick any combination you like: find <span className="text-white">Flick</span>, click the pencil icon, and
+          press your keys. Until then, click the Flick icon in the toolbar.
+        </p>
+        <button
+          type="button"
+          onClick={() => void openShortcutSettings()}
+          className="mt-4 rounded-lg bg-[var(--flick-accent)] px-4 py-2 text-sm font-medium text-white transition-all hover:brightness-110"
+        >
+          Set shortcut
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      aria-label="Welcome"
+      className="mb-8 rounded-2xl border border-[var(--flick-accent)]/20 bg-[var(--flick-accent)]/[0.06] p-5"
+    >
+      <h2 className="text-sm font-semibold">Flick is ready</h2>
+      <p className="mt-1.5 max-w-prose text-sm leading-relaxed text-[var(--flick-muted)]">
+        Press <Kbd>{shortcut}</Kbd> on any page to open the palette — or click the Flick icon in the toolbar (pin
+        it from the puzzle-piece menu). Below you can add your own shortcuts and snippets.
+      </p>
+    </section>
+  );
+}
+
 function FeaturesTab() {
   return (
     <div className="animate-in space-y-10">
@@ -410,6 +501,8 @@ function FeaturesTab() {
 
 export function OptionsApp() {
   const [tab, setTab] = useState<Tab>('shortcuts');
+  const openShortcut = useOpenShortcut();
+  const isWelcome = new URLSearchParams(location.search).has('welcome');
   const [aliases, setAliases] = useState<UrlAlias[]>([]);
   const [snippets, setSnippets] = useState<TextSnippet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -669,8 +762,13 @@ export function OptionsApp() {
               <h1 className="text-xl font-semibold tracking-tight">Flick</h1>
               <p className="text-sm text-[var(--flick-muted)]">Settings</p>
             </div>
+            <div className="ml-auto">
+              <ShortcutBadge shortcut={openShortcut} />
+            </div>
           </div>
         </header>
+
+        <ShortcutNotice shortcut={openShortcut} welcome={isWelcome} />
 
         <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
           {/* ── Sidebar nav ── */}

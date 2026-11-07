@@ -150,3 +150,23 @@ test('migrates shortcuts saved in the old single-key format', async ({ context, 
   await expect(options.getByRole('switch', { name: 'Enable legacy' })).toBeVisible();
   await expect(options.getByRole('switch', { name: 'Enable second' })).toBeVisible();
 });
+
+test.describe('welcome', () => {
+  test.use({ keepWelcome: true });
+
+  test('opens on install and shows how to open Flick', async ({ context, sw: _sw }) => {
+    const welcome = context.pages().find((p) => p.url().includes('options.html?welcome'))!;
+    await expect(welcome.getByRole('region', { name: 'Welcome' })).toBeVisible();
+    // Chromium assigned the suggested shortcut, so it's shown rather than the "not set" notice.
+    await expect(welcome.getByRole('button', { name: /Open with/ })).toBeVisible();
+    await expect(welcome.getByRole('region', { name: 'Keyboard shortcut not set' })).toHaveCount(0);
+  });
+});
+
+test('settings header shows the current shortcut', async ({ context, extensionId, sw }) => {
+  const shortcut = await sw.evaluate(async () => (await chrome.commands.getAll()).find((c) => c.name === 'open-flick')?.shortcut);
+  expect(shortcut).toBeTruthy();
+  const options = await openOptions(context, extensionId);
+  await expect(options.getByRole('button', { name: new RegExp(`Open with ${shortcut!.replace(/[+^$]/g, '\\$&')}`) })).toBeVisible();
+  await expect(options.getByRole('region', { name: 'Welcome' })).toHaveCount(0);
+});

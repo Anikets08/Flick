@@ -16,11 +16,12 @@ async function screenshot(tabId: number): Promise<void> {
 
   const tab = await getTab(tabId);
   const dataUrl = await browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
-  const timestamp = Date.now();
-  await browser.downloads.download({
-    url: dataUrl,
-    filename: `screenshot-${timestamp}.png`,
-    saveAs: false,
+  // The page saves the file (see saveFile in the palette content script),
+  // so Flick doesn't need the `downloads` permission.
+  await browser.tabs.sendMessage(tabId, {
+    type: 'SAVE_FILE',
+    dataUrl,
+    filename: `screenshot-${Date.now()}.png`,
   });
 }
 
